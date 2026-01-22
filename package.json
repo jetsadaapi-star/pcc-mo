@@ -1,0 +1,22 @@
+{
+  "name": "pcc-mo-line-bot",
+  "version": "1.0.0",
+  "description": "LINE Bot for collecting concrete order data from LINE groups",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "test:parser": "node src/parser/messageParser.test.js",
+    "test:db": "node src/database/db.test.js"
+  },
+  "dependencies": {
+    "@line/bot-sdk": "^9.4.0",
+    "sql.js": "^1.11.0",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "googleapis": "^144.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

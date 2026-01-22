@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PCC-MO Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/dashboard.css">
+</head>
+<body>
+  <div class="ambient-bg" aria-hidden="true">
+    <span class="orb orb-1"></span>
+    <span class="orb orb-2"></span>
+    <span class="orb orb-3"></span>
+    <span class="grid-glow"></span>
+  </div>
+  <!-- Header -->
+  <header class="header reveal">
+    <div class="header-content">
+      <div class="logo">
+        <span class="logo-icon">🏭</span>
+        <div class="logo-text">
+          <h1>PCC-MO</h1>
+          <p>Concrete Order Monitor</p>
+        </div>
+      </div>
+      <div class="header-stats">
+        <div class="stat-card glass">
+          <span class="stat-icon">📊</span>
+          <div class="stat-info">
+            <span class="stat-value" id="total-orders">-</span>
+            <span class="stat-label">รายการทั้งหมด</span>
+          </div>
+        </div>
+        <div class="stat-card glass">
+          <span class="stat-icon">📅</span>
+          <div class="stat-info">
+            <span class="stat-value" id="today-orders">-</span>
+            <span class="stat-label">วันนี้</span>
+          </div>
+        </div>
+        <div class="stat-card glass">
+          <span class="stat-icon">🧱</span>
+          <div class="stat-info">
+            <span class="stat-value" id="total-cement">-</span>
+            <span class="stat-label">ปูนรวม (คิว)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <!-- Filters -->
+    <div class="filters glass reveal delay-1">
+      <div class="filter-group">
+        <label for="date-filter">📅 วันที่</label>
+        <input type="date" id="date-filter" class="filter-input">
+      </div>
+      <div class="filter-group">
+        <label for="factory-filter">🏭 โรงงาน</label>
+        <select id="factory-filter" class="filter-input">
+          <option value="">ทั้งหมด</option>
+          <option value="1">โรง 1</option>
+          <option value="2">โรง 2</option>
+          <option value="3">โรง 3</option>
+          <option value="4">โรง 4</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label for="product-filter">📦 รหัสสินค้า</label>
+        <select id="product-filter" class="filter-input">
+          <option value="">ทั้งหมด</option>
+          <option value="A13">A13</option>
+          <option value="A35">A35</option>
+          <option value="A42">A42</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" onclick="loadOrders()">
+        🔍 ค้นหา
+      </button>
+      <button class="btn btn-secondary" onclick="resetFilters()">
+        ↺ รีเซ็ต
+      </button>
+    </div>
+
+    <!-- Orders Table -->
+    <div class="table-container glass reveal delay-2" id="orders">
+      <div class="table-header">
+        <h2>📋 รายการสั่งคอนกรีต</h2>
+        <button class="btn btn-sync" onclick="syncToSheets()">
+          <span class="sync-icon">📤</span> Sync to Sheets
+        </button>
+      </div>
+      <div class="table-wrapper">
+        <table class="orders-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>วันที่</th>
+              <th>โรงงาน</th>
+              <th>รหัส</th>
+              <th>รายละเอียด</th>
+              <th>ปูน (คิว)</th>
+              <th>สถานะ Sync</th>
+              <th>สร้างเมื่อ</th>
+            </tr>
+          </thead>
+          <tbody id="orders-tbody">
+            <tr class="loading-row">
+              <td colspan="8">
+                <div class="loading-spinner"></div>
+                <span>กำลังโหลดข้อมูล...</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      
+      <!-- Pagination -->
+      <div class="pagination">
+        <button class="btn btn-page" id="prev-btn" onclick="prevPage()" disabled>
+          ← ก่อนหน้า
+        </button>
+        <span class="page-info" id="page-info">หน้า 1</span>
+        <button class="btn btn-page" id="next-btn" onclick="nextPage()">
+          ถัดไป →
+        </button>
+      </div>
+    </div>
+
+    <!-- Daily Summary -->
+    <div class="summary-container glass reveal delay-3">
+      <h2>📊 สรุปรายวัน</h2>
+      <div class="summary-grid" id="daily-summary">
+        <p class="no-data">เลือกวันที่เพื่อดูสรุป</p>
+      </div>
+    </div>
+  </main>
+
+  <!-- Toast Notification -->
+  <div class="toast" id="toast"></div>
+
+  <script src="/js/dashboard.js"></script>
+</body>
+</html>

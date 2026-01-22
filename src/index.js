@@ -1,0 +1,148 @@
+/**
+ * PCC-MO LINE Bot
+ * Main Entry Point
+ * 
+ * ระบบ LINE Bot สำหรับเก็บข้อมูลการสั่งคอนกรีตจากกลุ่มไลน์
+ */
+
+require('dotenv').config();
+
+const express = require('express');
+const path = require('path');
+const { middleware } = require('./line/lineClient');
+const { handleWebhook } = require('./line/webhook');
+const { initSheetsClient, syncToSheets, testConnection, createHeaderRow } = require('./sheets/sheetsClient');
+const { initDatabase, getAllOrders, getOrderCount, getDailySummary } = require('./database/db');
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// Serve static files (Dashboard UI)
+app.use(express.static(path.join(__dirname, '../public')));
+
+// Health check API
+app.get('/api/health', async (req, res) => {
+    res.json({
+        name: 'PCC-MO LINE Bot',
+        status: 'running',
+        version: '1.0.0'
+    });
+});
+
+// Health check endpoint
+app.get('/health', async (req, res) => {
+    const orderCount = getOrderCount();
+    const sheetsStatus = await testConnection();
+
+    res.json({
+        status: 'healthy',
+        database: {
+            connected: true,
+            totalOrders: orderCount
+        },
+        googleSheets: sheetsStatus
+    });
+});
+
+// LINE Webhook endpoint
+app.post('/webhook', middleware, async (req, res) => {
+    try {
+        const events = req.body.events;
+        console.log(`\n📨 Received ${events.length} event(s)`);
+
+        await handleWebhook(events);
+
+        res.status(200).json({ status: 'ok' });
+    } catch (err) {
+        console.error('Webhook error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// API: ดึง orders ล่าสุด
+app.get('/api/orders', (req, res) => {
+    const limit = parseInt(req.query.limit) || 100;
+    const offset = parseInt(req.query.offset) || 0;
+
+    const orders = getAllOrders(limit, offset);
+    const total = getOrderCount();
+
+    res.json({
+        orders,
+        total,
+        limit,
+        offset
+    });
+});
+
+// API: สรุปรายวัน
+app.get('/api/summary/:date', (req, res) => {
+    const date = req.params.date; // YYYY-MM-DD
+    const summary = getDailySummary(date);
+
+    res.json({
+        date,
+        summary
+    });
+});
+
+// API: Manual sync to Google Sheets
+app.post('/api/sync', async (req, res) => {
+    try {
+        const result = await syncToSheets();
+        res.json(result);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// API: สร้าง header row ใน Google Sheets
+app.post('/api/sheets/init', async (req, res) => {
+    try {
+        await createHeaderRow();
+        res.json({ success: true, message: 'Header row created' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Error handling
+app.use((err, req, res, next) => {
+    console.error('Unhandled error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+});
+
+// Start server
+async function startServer() {
+    console.log('');
+    console.log('╔══════════════════════════════════════════╗');
+    console.log('║     🏭 PCC-MO LINE Bot Starting...       ║');
+    console.log('╚══════════════════════════════════════════╝');
+    console.log('');
+
+    // Initialize Database
+    await initDatabase();
+
+    // Initialize Google Sheets
+    await initSheetsClient();
+
+    // Start Express server
+    app.listen(PORT, () => {
+        console.log(`🌐 Server running on http://localhost:${PORT}`);
+        console.log(`📊 Dashboard: http://localhost:${PORT}`);
+        console.log(`📡 Webhook URL: http://localhost:${PORT}/webhook`);
+        console.log('');
+
+        // Show order count
+        const count = getOrderCount();
+        console.log(`💾 Database has ${count} orders`);
+        console.log('');
+        console.log('Ready to receive messages from LINE groups!');
+        console.log('');
+    });
+}
+
+startServer().catch(err => {
+    console.error('Failed to start server:', err);
+    process.exit(1);
+});
