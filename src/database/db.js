@@ -8,13 +8,17 @@ const path = require('path');
 const fs = require('fs');
 const { SCHEMA } = require('./schema');
 
-// สร้าง data directory ถ้ายังไม่มี
-const dataDir = path.join(__dirname, '../../data');
+// สร้าง data directory ถ้ายังไม่มี (รองรับ DATA_DIR หรือ DB_PATH สำหรับ production)
+const dataDir = process.env.DATA_DIR
+  ? path.resolve(process.env.DATA_DIR)
+  : path.join(__dirname, '../../data');
 if (!fs.existsSync(dataDir)) {
   fs.mkdirSync(dataDir, { recursive: true });
 }
 
-const dbPath = path.join(dataDir, 'orders.db');
+const dbPath = process.env.DB_PATH
+  ? path.resolve(process.env.DB_PATH)
+  : path.join(dataDir, 'orders.db');
 
 let db = null;
 let isInitialized = false;
