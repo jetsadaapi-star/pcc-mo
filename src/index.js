@@ -14,11 +14,14 @@ const { handleWebhook } = require('./line/webhook');
 const { initSheetsClient, syncToSheets, testConnection, createHeaderRow } = require('./sheets/sheetsClient');
 const {
     initDatabase,
-    getAllOrders,
+    getOrdersByFilters,
+    getOrdersCountByFilters,
     getOrderCount,
     getDailySummary,
     getSummaryByDate,
-    getSummaryByMonth
+    getSummaryByMonth,
+    getFilterOptions,
+    getAnalytics
 } = require('./database/db');
 
 const app = express();
@@ -26,6 +29,54 @@ const PORT = process.env.PORT || 3000;
 
 // Serve static files (Dashboard UI)
 app.use(express.static(path.join(__dirname, '../public')));
+
+// Page routes for multi-page frontend
+app.get('/orders', (req, res) => {
+    res.sendFile(path.join(__dirname, '../public/orders.html'));
+});
+
+app.get('/analytics', (req, res) => {
+    res.sendFile(path.join(__dirname, '../public/analytics.html'));
+});
+
+app.get('/compare', (req, res) => {
+    res.sendFile(path.join(__dirname, '../public/compare.html'));
+});
+
+app.get('/settings', (req, res) => {
+    res.sendFile(path.join(__dirname, '../public/settings.html'));
+});
+
+function parseFilters(query = {}) {
+    const splitList = (value) => {
+        if (!value) return [];
+        return String(value)
+            .split(',')
+            .map(item => item.trim())
+            .filter(Boolean);
+    };
+
+    const startDate = query.startDate || query.date || '';
+    const endDate = query.endDate || query.date || '';
+
+    return {
+        startDate,
+        endDate,
+        factoryIds: splitList(query.factoryIds || query.factoryId),
+        productCodes: splitList(query.productCodes || query.productCode),
+        supervisors: splitList(query.supervisors || query.supervisor),
+        lineGroupIds: splitList(query.lineGroupIds || query.lineGroupId),
+        lineUserIds: splitList(query.lineUserIds || query.lineUserId),
+        synced: query.synced ?? '',
+        minCement: query.minCement ?? '',
+        maxCement: query.maxCement ?? '',
+        minLoaded: query.minLoaded ?? '',
+        maxLoaded: query.maxLoaded ?? '',
+        minDifference: query.minDifference ?? '',
+        maxDifference: query.maxDifference ?? '',
+        search: query.search ? String(query.search).trim() : ''
+    };
+}
 
 // Health check API
 app.get('/api/health', async (req, res) => {
@@ -71,8 +122,9 @@ app.get('/api/orders', (req, res) => {
     const limit = parseInt(req.query.limit) || 100;
     const offset = parseInt(req.query.offset) || 0;
 
-    const orders = getAllOrders(limit, offset);
-    const total = getOrderCount();
+    const filters = parseFilters(req.query);
+    const orders = getOrdersByFilters(filters, limit, offset);
+    const total = getOrdersCountByFilters(filters);
 
     res.json({
         orders,
@@ -90,6 +142,27 @@ app.get('/api/summary/:date', (req, res) => {
     res.json({
         date,
         summary
+    });
+});
+
+// API: ตัวเลือกสำหรับตัวกรอง
+app.get('/api/filters', (req, res) => {
+    const options = getFilterOptions();
+    res.json(options);
+});
+
+// API: Analytics สำหรับกราฟและรายงาน
+app.get('/api/analytics', (req, res) => {
+    const period = req.query.period === 'monthly' ? 'monthly' : 'daily';
+    const filters = parseFilters(req.query);
+
+    const analytics = getAnalytics(filters, period);
+
+    res.json({
+        period,
+        startDate: filters.startDate || null,
+        endDate: filters.endDate || null,
+        ...analytics
     });
 });
 

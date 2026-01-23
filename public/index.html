@@ -1,253 +1,391 @@
 ﻿<!DOCTYPE html>
 <html lang="th">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PCC-MO Dashboard</title>
+  <title>PCC-MO | Dashboard</title>
+  <meta name="description" content="ระบบติดตามการใช้ปูนและคำสั่งซื้อคอนกรีต">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/dashboard.css">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Sarabun:wght@300;400;500;600;700&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="/css/styles.css">
 </head>
+
 <body>
-  <div class="backdrop" aria-hidden="true">
-    <span class="halo halo-1"></span>
-    <span class="halo halo-2"></span>
-    <span class="halo halo-3"></span>
-    <span class="grid"></span>
+  <!-- Background Pattern -->
+  <div class="bg-pattern">
+    <div class="floating-shape floating-shape-1"></div>
+    <div class="floating-shape floating-shape-2"></div>
+    <div class="floating-shape floating-shape-3"></div>
   </div>
 
-  <header class="site-header">
-    <div class="header-inner">
+  <div class="app-layout">
+    <!-- Mobile Menu Button -->
+    <button class="mobile-menu-btn" id="menu-toggle" aria-label="เปิดเมนู">☰</button>
+    <div class="mobile-overlay" id="mobile-overlay"></div>
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
       <div class="brand">
-        <div class="brand-mark">PCC</div>
+        <div class="brand-logo">PCC</div>
         <div class="brand-text">
           <h1>PCC-MO</h1>
-          <p>Concrete Order Monitor</p>
+          <p>Concrete Monitor</p>
         </div>
       </div>
-      <div class="header-actions">
-        <button class="btn btn-sync" onclick="syncToSheets()">
-          <span class="sync-icon">📤</span> Sync to Sheets
-        </button>
-        <div class="status-chip">
+
+      <nav class="nav-menu">
+        <a href="/" class="nav-item active">
+          <span class="nav-icon">📊</span>
+          <span>Dashboard</span>
+        </a>
+        <a href="/orders" class="nav-item">
+          <span class="nav-icon">📋</span>
+          <span>คำสั่งซื้อ</span>
+        </a>
+        <a href="/analytics" class="nav-item">
+          <span class="nav-icon">📈</span>
+          <span>วิเคราะห์</span>
+        </a>
+        <a href="/compare" class="nav-item">
+          <span class="nav-icon">⚖️</span>
+          <span>เปรียบเทียบ</span>
+        </a>
+        <a href="/settings" class="nav-item">
+          <span class="nav-icon">⚙️</span>
+          <span>ตั้งค่า</span>
+        </a>
+      </nav>
+
+      <div class="nav-footer">
+        <div class="status-indicator">
           <span class="status-dot"></span>
-          Live Dashboard
+          <span>Live Dashboard</span>
         </div>
       </div>
-    </div>
-    <div class="header-metrics">
-      <div class="metric-card">
-        <span class="metric-label">คำสั่งซื้อทั้งหมด</span>
-        <span class="metric-value" id="total-orders">-</span>
-      </div>
-      <div class="metric-card">
-        <span class="metric-label" id="period-orders-label">รายการช่วงที่เลือก</span>
-        <span class="metric-value" id="period-orders">-</span>
-      </div>
-      <div class="metric-card">
-        <span class="metric-label">ปูนรวมช่วงที่เลือก (คิว)</span>
-        <span class="metric-value" id="period-cement">-</span>
-      </div>
-    </div>
-  </header>
+    </aside>
 
-  <nav class="site-nav">
-    <a href="#overview">ภาพรวม</a>
-    <a href="#reports">รายงาน</a>
-    <a href="#orders">คำสั่งซื้อ</a>
-    <a href="#footer">ระบบ</a>
-  </nav>
-
-  <main class="site-main">
-    <section id="overview" class="panel">
-      <div class="panel-header">
+    <!-- Main Content -->
+    <main class="main-content">
+      <header class="page-header">
         <div>
-          <p class="eyebrow">Dashboard</p>
-          <h2>ภาพรวมการใช้ปูนและการผลิต</h2>
-          <p class="subtext" id="report-range">อัปเดตล่าสุด -</p>
+          <h1 class="page-title">Dashboard</h1>
+          <p class="page-subtitle">ภาพรวมการใช้ปูนและคำสั่งซื้อคอนกรีต</p>
         </div>
-        <div class="panel-highlight">
-          <div>
-            <p class="highlight-label">โรงงานที่ใช้งาน</p>
-            <p class="highlight-value" id="active-factories">-</p>
-          </div>
-          <div>
-            <p class="highlight-label">กลุ่มสินค้า</p>
-            <p class="highlight-value" id="active-products">-</p>
-          </div>
+        <div class="page-actions">
+          <button class="btn btn-secondary" id="refresh-btn" onclick="dashboard.refresh()">
+            🔄 รีเฟรช
+          </button>
+          <button class="btn btn-primary" onclick="dashboard.syncToSheets()">
+            📤 Sync to Sheets
+          </button>
         </div>
-      </div>
-      <div class="kpi-grid">
+      </header>
+
+      <!-- Filter Panel - Compact -->
+      <section class="filter-panel" style="padding: 1rem;">
+        <div style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-end;">
+          <!-- Date Range -->
+          <div class="form-group">
+            <label class="form-label">วันที่เริ่ม</label>
+            <input type="date" id="filter-start" class="form-input" style="width: 150px;">
+          </div>
+          <div class="form-group">
+            <label class="form-label">วันที่สิ้นสุด</label>
+            <input type="date" id="filter-end" class="form-input" style="width: 150px;">
+          </div>
+
+          <!-- Quick Date Buttons -->
+          <div class="form-group">
+            <label class="form-label">ช่วงเวลา</label>
+            <div style="display: flex; gap: 0.25rem; flex-wrap: wrap;">
+              <button type="button" class="quick-date-btn" data-range="today">วันนี้</button>
+              <button type="button" class="quick-date-btn" data-range="7d">7 วัน</button>
+              <button type="button" class="quick-date-btn" data-range="month">เดือนนี้</button>
+            </div>
+          </div>
+
+          <!-- Apply Button -->
+          <button type="button" class="btn btn-primary" onclick="dashboard.applyFilters()">
+            🔍 ค้นหา
+          </button>
+        </div>
+      </section>
+
+      <!-- KPI Cards -->
+      <section class="kpi-grid">
         <div class="kpi-card">
-          <p class="kpi-title">โรงงานใช้ปูนสูงสุด</p>
-          <p class="kpi-value" id="top-factory">-</p>
-          <p class="kpi-footnote">ตามช่วงเวลาที่เลือก</p>
+          <div class="kpi-icon">📦</div>
+          <p class="kpi-label">คำสั่งซื้อทั้งหมด</p>
+          <p class="kpi-value" id="kpi-total-orders">-</p>
         </div>
         <div class="kpi-card">
-          <p class="kpi-title">กลุ่มสินค้ายอดสูงสุด</p>
-          <p class="kpi-value" id="top-product">-</p>
-          <p class="kpi-footnote">ตามช่วงเวลาที่เลือก</p>
+          <div class="kpi-icon">🏭</div>
+          <p class="kpi-label">ปูนรวม (คิว)</p>
+          <p class="kpi-value" id="kpi-total-cement">-</p>
         </div>
         <div class="kpi-card">
-          <p class="kpi-title">เฉลี่ยปูนต่อรายการ</p>
-          <p class="kpi-value"><span id="avg-cement">-</span> คิว</p>
-          <p class="kpi-footnote">คำนวณจากคำสั่งซื้อทั้งหมด</p>
+          <div class="kpi-icon">📊</div>
+          <p class="kpi-label">เฉลี่ยต่อรายการ</p>
+          <p class="kpi-value" id="kpi-avg-cement">- <small>คิว</small></p>
         </div>
-      </div>
-    </section>
+        <div class="kpi-card">
+          <div class="kpi-icon">✅</div>
+          <p class="kpi-label">อัตรา Sync</p>
+          <p class="kpi-value" id="kpi-sync-rate">-%</p>
+        </div>
+      </section>
 
-    <section id="reports" class="panel">
-      <div class="panel-header">
-        <div>
-          <p class="eyebrow">Reports</p>
-          <h2>รายงานการใช้ปูนแบบเจาะลึก</h2>
-          <p class="subtext">เลือกดูรายวันหรือรายเดือน พร้อมแยกตามโรงงานและกลุ่มสินค้า</p>
+      <!-- Quick Stats -->
+      <section class="grid-2 mb-lg">
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">🏆 โรงงานยอดสูงสุด</h3>
+            <span class="card-badge">เดือนนี้</span>
+          </div>
+          <div id="top-factories">
+            <div class="skeleton" style="height: 120px;"></div>
+          </div>
         </div>
-        <div class="panel-actions">
-          <button class="btn btn-primary" onclick="loadReport()">อัปเดตรายงาน</button>
-        </div>
-      </div>
 
-      <div class="report-controls">
-        <div class="control-group">
-          <label>ช่วงเวลา</label>
-          <div class="segmented" role="group" aria-label="เลือกช่วงเวลา">
-            <button type="button" class="segmented-btn is-active" data-period="daily" aria-pressed="true">รายวัน</button>
-            <button type="button" class="segmented-btn" data-period="monthly" aria-pressed="false">รายเดือน</button>
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">📦 กลุ่มสินค้ายอดสูงสุด</h3>
+            <span class="card-badge">เดือนนี้</span>
           </div>
-          <input type="hidden" id="report-period" value="daily">
-        </div>
-        <div class="control-group" id="report-date-group">
-          <label for="report-date">วันที่</label>
-          <input type="date" id="report-date">
-        </div>
-        <div class="control-group" id="report-month-group">
-          <label for="report-month">เดือน</label>
-          <input type="month" id="report-month">
-        </div>
-        <div class="control-group">
-          <label>ตัวช่วย</label>
-          <div class="hint-card">
-            <span>📌</span>
-            ดูการใช้งานปูนแบบเรียลไทม์
+          <div id="top-products">
+            <div class="skeleton" style="height: 120px;"></div>
           </div>
         </div>
-      </div>
+      </section>
 
-      <div class="report-grid">
-        <article class="report-panel">
-          <div class="panel-title">
-            <h3>รายงานตามโรงงาน</h3>
-            <span class="panel-tag">Factory</span>
-          </div>
-          <div class="report-list" id="factory-report-list">
-            <p class="no-data">กำลังโหลดรายงาน...</p>
-          </div>
-        </article>
-        <article class="report-panel">
-          <div class="panel-title">
-            <h3>รายงานตามกลุ่มสินค้า</h3>
-            <span class="panel-tag">Product</span>
-          </div>
-          <div class="report-list" id="product-report-list">
-            <p class="no-data">กำลังโหลดรายงาน...</p>
-          </div>
-        </article>
-      </div>
-    </section>
+      <!-- Trend Chart -->
+      <section class="card mb-lg">
+        <div class="card-header">
+          <h3 class="card-title">📈 แนวโน้มการใช้ปูน (30 วันล่าสุด)</h3>
+        </div>
+        <div class="chart-canvas" id="trend-chart">
+          <div class="skeleton" style="height: 160px;"></div>
+        </div>
+      </section>
 
-    <section id="orders" class="panel">
-      <div class="panel-header">
-        <div>
-          <p class="eyebrow">Orders</p>
-          <h2>รายการสั่งคอนกรีต</h2>
-          <p class="subtext">ค้นหาและตรวจสอบสถานะการ Sync พร้อมกรองข้อมูลตามช่วงเวลา</p>
+      <!-- Recent Orders -->
+      <section class="card">
+        <div class="card-header">
+          <h3 class="card-title">📋 คำสั่งซื้อล่าสุด</h3>
+          <a href="/orders" class="btn btn-ghost btn-sm">ดูทั้งหมด →</a>
         </div>
-        <div class="panel-actions">
-          <span class="chip" id="orders-count">- รายการ</span>
-        </div>
-      </div>
-
-      <div class="filters-panel">
-        <div class="filter-group">
-          <label for="date-filter">วันที่</label>
-          <input type="date" id="date-filter" class="filter-input">
-        </div>
-        <div class="filter-group">
-          <label for="factory-filter">โรงงาน</label>
-          <select id="factory-filter" class="filter-input">
-            <option value="">ทั้งหมด</option>
-            <option value="1">โรง 1</option>
-            <option value="2">โรง 2</option>
-            <option value="3">โรง 3</option>
-            <option value="4">โรง 4</option>
-          </select>
-        </div>
-        <div class="filter-group">
-          <label for="product-filter">กลุ่มสินค้า</label>
-          <select id="product-filter" class="filter-input">
-            <option value="">ทั้งหมด</option>
-            <option value="A13">A13</option>
-            <option value="A35">A35</option>
-            <option value="A42">A42</option>
-          </select>
-        </div>
-        <button class="btn btn-primary" onclick="loadOrders()">ค้นหา</button>
-        <button class="btn btn-secondary" onclick="resetFilters()">รีเซ็ต</button>
-      </div>
-
-      <div class="table-shell">
-        <div class="table-header">
-          <h3>ตารางคำสั่งซื้อ</h3>
-          <div class="table-actions">
-            <button class="btn btn-ghost" onclick="syncToSheets()">Sync to Sheets</button>
-          </div>
-        </div>
-        <div class="table-wrapper">
-          <table class="orders-table">
+        <div class="table-container">
+          <table class="data-table">
             <thead>
               <tr>
                 <th>ID</th>
                 <th>วันที่</th>
                 <th>โรงงาน</th>
                 <th>รหัส</th>
-                <th>รายละเอียด</th>
                 <th>ปูน (คิว)</th>
-                <th>สถานะ Sync</th>
-                <th>สร้างเมื่อ</th>
+                <th>สถานะ</th>
               </tr>
             </thead>
-            <tbody id="orders-tbody">
-              <tr class="loading-row">
-                <td colspan="8">
-                  <div class="loading-spinner"></div>
-                  <span>กำลังโหลดข้อมูล...</span>
+            <tbody id="recent-orders">
+              <tr>
+                <td colspan="6" class="text-center text-muted" style="padding: 2rem;">
+                  <div class="loading-spinner" style="margin: 0 auto 1rem;"></div>
+                  กำลังโหลด...
                 </td>
               </tr>
             </tbody>
           </table>
         </div>
+      </section>
 
-        <div class="pagination">
-          <button class="btn btn-page" id="prev-btn" onclick="prevPage()" disabled>← ก่อนหน้า</button>
-          <span class="page-info" id="page-info">หน้า 1</span>
-          <button class="btn btn-page" id="next-btn" onclick="nextPage()">ถัดไป →</button>
-        </div>
-      </div>
-    </section>
-  </main>
+      <!-- Last Updated -->
+      <p class="text-muted text-center mt-lg" style="font-size: 0.85rem;">
+        อัปเดตล่าสุด: <span id="last-updated">-</span>
+      </p>
+    </main>
+  </div>
 
-  <footer id="footer" class="site-footer">
-    <div>
-      <strong>PCC-MO</strong> | ระบบติดตามการใช้ปูนและคำสั่งซื้อ
-    </div>
-    <div>
-      อัปเดตล่าสุด <span id="last-updated">-</span>
-    </div>
-  </footer>
-
+  <!-- Toast -->
   <div class="toast" id="toast"></div>
-  <script src="/js/dashboard.js"></script>
+
+  <script src="/js/main.js"></script>
+  <script>
+    const dashboard = {
+      filters: {},
+
+      async init() {
+        this.setDefaultFilters();
+        this.initQuickDates();
+        await this.loadData();
+      },
+
+      setDefaultFilters() {
+        const today = new Date();
+        const start = new Date(today.getFullYear(), today.getMonth(), 1);
+
+        PCCMO.setInputValue('filter-start', PCCMO.toISODate(start));
+        PCCMO.setInputValue('filter-end', PCCMO.toISODate(today));
+
+        this.filters = {
+          startDate: PCCMO.toISODate(start),
+          endDate: PCCMO.toISODate(today)
+        };
+      },
+
+      initQuickDates() {
+        document.querySelectorAll('.quick-date-btn').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const range = PCCMO.getDateRangePreset(btn.dataset.range);
+            PCCMO.setInputValue('filter-start', range.start);
+            PCCMO.setInputValue('filter-end', range.end);
+            // Auto-apply after quick date selection
+            this.applyFilters();
+          });
+        });
+      },
+
+      getFiltersFromForm() {
+        return {
+          startDate: PCCMO.getInputValue('filter-start'),
+          endDate: PCCMO.getInputValue('filter-end')
+        };
+      },
+
+      applyFilters() {
+        this.filters = this.getFiltersFromForm();
+        this.loadData();
+        PCCMO.showToast('กรองข้อมูลแล้ว', 'success');
+      },
+
+      async loadData() {
+        try {
+          const [analytics, ordersData] = await Promise.all([
+            PCCMO.fetchAnalytics(this.filters, 'daily'),
+            PCCMO.fetchOrders(this.filters, 10, 0)
+          ]);
+
+          this.renderKPIs(analytics);
+          this.renderTopFactories(analytics.byFactory);
+          this.renderTopProducts(analytics.byProduct);
+          this.renderTrendChart(analytics.timeSeries);
+          this.renderRecentOrders(ordersData.orders);
+          this.updateLastUpdated();
+        } catch (error) {
+          console.error('Dashboard load error:', error);
+          PCCMO.showToast('เกิดข้อผิดพลาดในการโหลดข้อมูล', 'error');
+        }
+      },
+
+      renderKPIs(analytics) {
+        const totals = analytics.totals || {};
+        const syncStatus = analytics.syncStatus || [];
+
+        PCCMO.setText('kpi-total-orders', PCCMO.formatNumber(totals.order_count || 0));
+        PCCMO.setText('kpi-total-cement', PCCMO.formatDecimal(totals.total_cement || 0));
+
+        document.getElementById('kpi-avg-cement').innerHTML =
+          `${PCCMO.formatDecimal(totals.avg_cement || 0)} <small>คิว</small>`;
+
+        const synced = syncStatus.find(s => Number(s.status) === 1)?.count || 0;
+        const pending = syncStatus.find(s => Number(s.status) === 0)?.count || 0;
+        const total = synced + pending;
+        const percent = total > 0 ? Math.round((synced / total) * 100) : 0;
+
+        PCCMO.setText('kpi-sync-rate', `${percent}%`);
+      },
+
+      renderTopFactories(byFactory) {
+        PCCMO.renderBarChart('top-factories', byFactory?.slice(0, 3), (key) => {
+          return key ? `โรง ${key}` : 'ไม่ระบุ';
+        });
+      },
+
+      renderTopProducts(byProduct) {
+        PCCMO.renderBarChart('top-products', byProduct?.slice(0, 3), (key) => {
+          return key || 'ไม่ระบุรหัส';
+        });
+      },
+
+      renderTrendChart(timeSeries) {
+        PCCMO.renderTrendChart('trend-chart', timeSeries, 'daily');
+      },
+
+      renderRecentOrders(orders) {
+        const tbody = document.getElementById('recent-orders');
+        if (!tbody) return;
+
+        if (!orders || orders.length === 0) {
+          tbody.innerHTML = `
+            <tr>
+              <td colspan="6" class="text-center text-muted" style="padding: 2rem;">
+                ไม่มีข้อมูลคำสั่งซื้อ
+              </td>
+            </tr>
+          `;
+          return;
+        }
+
+        tbody.innerHTML = orders.map(order => {
+          const cement = Number(order.cement_quantity);
+          const cementDisplay = Number.isFinite(cement) ? cement.toFixed(2) : '-';
+
+          return `
+            <tr>
+              <td><strong>#${order.id}</strong></td>
+              <td>${PCCMO.formatDate(order.order_date)}</td>
+              <td>🏭 โรง ${order.factory_id || '-'}</td>
+              <td>${PCCMO.escapeHtml(order.product_code || '-')}</td>
+              <td class="font-semibold">${cementDisplay}</td>
+              <td>
+                ${order.synced_to_sheets
+              ? '<span class="badge badge-success">✓ Synced</span>'
+              : '<span class="badge badge-warning">○ Pending</span>'}
+              </td>
+            </tr>
+          `;
+        }).join('');
+      },
+
+      updateLastUpdated() {
+        const now = new Date();
+        PCCMO.setText('last-updated', PCCMO.formatDateTime(now.toISOString()));
+      },
+
+      async refresh() {
+        const btn = document.getElementById('refresh-btn');
+        if (btn) btn.disabled = true;
+
+        await this.loadData();
+        PCCMO.showToast('รีเฟรชข้อมูลสำเร็จ', 'success');
+
+        if (btn) btn.disabled = false;
+      },
+
+      async syncToSheets() {
+        try {
+          PCCMO.showToast('📤 กำลัง Sync ไป Google Sheets...', 'info');
+          const result = await PCCMO.syncToSheets();
+
+          if (result.error) {
+            PCCMO.showToast(`❌ ${result.error}`, 'error');
+          } else if (result.synced > 0) {
+            PCCMO.showToast(`✅ Sync สำเร็จ ${result.synced} รายการ`, 'success');
+            await this.loadData();
+          } else {
+            PCCMO.showToast('✓ ไม่มีรายการที่ต้อง Sync', 'success');
+          }
+        } catch (error) {
+          PCCMO.showToast('❌ เกิดข้อผิดพลาดในการ Sync', 'error');
+        }
+      }
+    };
+
+    document.addEventListener('DOMContentLoaded', () => dashboard.init());
+  </script>
 </body>
+
 </html>

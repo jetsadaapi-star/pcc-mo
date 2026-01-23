@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PCC-MO | ตั้งค่า</title>
+    <meta name="description" content="การตั้งค่าและสถานะระบบ">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Sarabun:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="/css/styles.css">
+    <style>
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: var(--space-lg);
+        }
+
+        .info-list {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-md);
+        }
+
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: var(--space-md);
+            background: var(--color-bg-muted);
+            border-radius: var(--radius-md);
+        }
+
+        .info-label {
+            color: var(--color-text-muted);
+            font-size: 0.9rem;
+        }
+
+        .info-value {
+            font-family: var(--font-display);
+            font-weight: 600;
+            color: var(--color-text);
+        }
+
+        .action-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            padding: var(--space-xl);
+        }
+
+        .action-icon {
+            font-size: 3rem;
+            margin-bottom: var(--space-md);
+        }
+
+        .action-title {
+            font-family: var(--font-display);
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: var(--space-sm);
+        }
+
+        .action-desc {
+            color: var(--color-text-muted);
+            font-size: 0.9rem;
+            margin-bottom: var(--space-lg);
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Background Pattern -->
+    <div class="bg-pattern">
+        <div class="floating-shape floating-shape-1"></div>
+        <div class="floating-shape floating-shape-2"></div>
+        <div class="floating-shape floating-shape-3"></div>
+    </div>
+
+    <div class="app-layout">
+        <!-- Mobile Menu Button -->
+        <button class="mobile-menu-btn" id="menu-toggle" aria-label="เปิดเมนู">☰</button>
+        <div class="mobile-overlay" id="mobile-overlay"></div>
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="brand-logo">PCC</div>
+                <div class="brand-text">
+                    <h1>PCC-MO</h1>
+                    <p>Concrete Monitor</p>
+                </div>
+            </div>
+
+            <nav class="nav-menu">
+                <a href="/" class="nav-item">
+                    <span class="nav-icon">📊</span>
+                    <span>Dashboard</span>
+                </a>
+                <a href="/orders" class="nav-item">
+                    <span class="nav-icon">📋</span>
+                    <span>คำสั่งซื้อ</span>
+                </a>
+                <a href="/analytics" class="nav-item">
+                    <span class="nav-icon">📈</span>
+                    <span>วิเคราะห์</span>
+                </a>
+                <a href="/compare" class="nav-item">
+                    <span class="nav-icon">⚖️</span>
+                    <span>เปรียบเทียบ</span>
+                </a>
+                <a href="/settings" class="nav-item active">
+                    <span class="nav-icon">⚙️</span>
+                    <span>ตั้งค่า</span>
+                </a>
+            </nav>
+
+            <div class="nav-footer">
+                <div class="status-indicator">
+                    <span class="status-dot"></span>
+                    <span>Live Dashboard</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="page-header">
+                <div>
+                    <h1 class="page-title">ตั้งค่า</h1>
+                    <p class="page-subtitle">การตั้งค่าระบบและการจัดการข้อมูล</p>
+                </div>
+            </header>
+
+            <!-- Actions Grid -->
+            <section class="settings-grid mb-lg">
+                <!-- Sync to Sheets -->
+                <div class="card action-card">
+                    <div class="action-icon">📤</div>
+                    <h3 class="action-title">Sync to Google Sheets</h3>
+                    <p class="action-desc">
+                        ส่งข้อมูลที่ยังไม่ได้ Sync ไปยัง Google Sheets
+                    </p>
+                    <button class="btn btn-primary btn-lg" onclick="settings.syncToSheets()" id="sync-btn">
+                        Sync Now
+                    </button>
+                </div>
+
+                <!-- Initialize Sheets -->
+                <div class="card action-card">
+                    <div class="action-icon">📋</div>
+                    <h3 class="action-title">สร้าง Header Row</h3>
+                    <p class="action-desc">
+                        สร้างแถวหัวข้อใน Google Sheets (ทำครั้งแรกหรือเมื่อต้องการรีเซ็ต)
+                    </p>
+                    <button class="btn btn-secondary btn-lg" onclick="settings.initSheets()">
+                        Initialize Headers
+                    </button>
+                </div>
+            </section>
+
+            <!-- System Info -->
+            <section class="settings-grid">
+                <!-- System Status -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">🖥️ สถานะระบบ</h3>
+                        <button class="btn btn-ghost btn-sm" onclick="settings.loadHealth()">🔄</button>
+                    </div>
+                    <div class="info-list" id="system-info">
+                        <div class="info-item">
+                            <span class="info-label">สถานะ</span>
+                            <span class="info-value" id="sys-status">-</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Database</span>
+                            <span class="info-value" id="sys-db">-</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">คำสั่งซื้อทั้งหมด</span>
+                            <span class="info-value" id="sys-orders">-</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Google Sheets</span>
+                            <span class="info-value" id="sys-sheets">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sync Status -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">📊 สถานะ Sync</h3>
+                    </div>
+                    <div class="info-list">
+                        <div class="info-item">
+                            <span class="info-label">รายการที่ Sync แล้ว</span>
+                            <span class="info-value text-success" id="sync-count">-</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">รอ Sync</span>
+                            <span class="info-value text-warning" id="pending-count">-</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">อัตรา Sync</span>
+                            <span class="info-value" id="sync-rate">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- About -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">ℹ️ เกี่ยวกับระบบ</h3>
+                    </div>
+                    <div class="info-list">
+                        <div class="info-item">
+                            <span class="info-label">ชื่อระบบ</span>
+                            <span class="info-value">PCC-MO</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">เวอร์ชัน</span>
+                            <span class="info-value">1.0.0</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Framework</span>
+                            <span class="info-value">Express.js + sql.js</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">คำอธิบาย</span>
+                            <span class="info-value">LINE Bot คำสั่งซื้อคอนกรีต</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <script src="/js/main.js"></script>
+    <script>
+        const settings = {
+            async init() {
+                await this.loadHealth();
+                await this.loadSyncStatus();
+            },
+
+            async loadHealth() {
+                try {
+                    const data = await PCCMO.fetchAPI('/health');
+
+                    PCCMO.setText('sys-status', data.status === 'healthy' ? '✓ ปกติ' : '⚠️ มีปัญหา');
+                    PCCMO.setText('sys-db', data.database?.connected ? '✓ เชื่อมต่อแล้ว' : '✗ ขาดการเชื่อมต่อ');
+                    PCCMO.setText('sys-orders', PCCMO.formatNumber(data.database?.totalOrders || 0));
+                    PCCMO.setText('sys-sheets', data.googleSheets?.connected ? '✓ พร้อมใช้งาน' : '⚠️ ยังไม่ได้ตั้งค่า');
+                } catch (error) {
+                    console.error('Health check error:', error);
+                    PCCMO.setText('sys-status', '✗ ไม่สามารถเชื่อมต่อได้');
+                }
+            },
+
+            async loadSyncStatus() {
+                try {
+                    const data = await PCCMO.fetchAnalytics({});
+                    const syncStatus = data.syncStatus || [];
+
+                    const synced = syncStatus.find(s => Number(s.status) === 1)?.count || 0;
+                    const pending = syncStatus.find(s => Number(s.status) === 0)?.count || 0;
+                    const total = synced + pending;
+                    const rate = total > 0 ? Math.round((synced / total) * 100) : 0;
+
+                    PCCMO.setText('sync-count', PCCMO.formatNumber(synced));
+                    PCCMO.setText('pending-count', PCCMO.formatNumber(pending));
+                    PCCMO.setText('sync-rate', `${rate}%`);
+                } catch (error) {
+                    console.error('Sync status error:', error);
+                }
+            },
+
+            async syncToSheets() {
+                const btn = document.getElementById('sync-btn');
+                if (btn) btn.disabled = true;
+
+                try {
+                    PCCMO.showToast('📤 กำลัง Sync ไป Google Sheets...', 'info');
+                    const result = await PCCMO.syncToSheets();
+
+                    if (result.error) {
+                        PCCMO.showToast(`❌ ${result.error}`, 'error');
+                    } else if (result.synced > 0) {
+                        PCCMO.showToast(`✅ Sync สำเร็จ ${result.synced} รายการ`, 'success');
+                        await this.loadSyncStatus();
+                    } else {
+                        PCCMO.showToast('✓ ไม่มีรายการที่ต้อง Sync', 'success');
+                    }
+                } catch (error) {
+                    PCCMO.showToast('❌ เกิดข้อผิดพลาดในการ Sync', 'error');
+                } finally {
+                    if (btn) btn.disabled = false;
+                }
+            },
+
+            async initSheets() {
+                try {
+                    PCCMO.showToast('📋 กำลังสร้าง Header Row...', 'info');
+                    const result = await PCCMO.fetchAPI('/api/sheets/init', { method: 'POST' });
+
+                    if (result.error) {
+                        PCCMO.showToast(`❌ ${result.error}`, 'error');
+                    } else {
+                        PCCMO.showToast('✅ สร้าง Header Row สำเร็จ', 'success');
+                    }
+                } catch (error) {
+                    PCCMO.showToast('❌ เกิดข้อผิดพลาด', 'error');
+                }
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', () => settings.init());
+    </script>
+</body>
+
+</html>

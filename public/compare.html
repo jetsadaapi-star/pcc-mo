@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PCC-MO | เปรียบเทียบ</title>
+    <meta name="description" content="เปรียบเทียบข้อมูลระหว่างสองช่วงเวลา">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Sarabun:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="/css/styles.css">
+    <style>
+        .compare-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: var(--space-lg);
+        }
+
+        .compare-card {
+            background: var(--color-bg-surface);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-lg);
+            padding: var(--space-xl);
+            text-align: center;
+        }
+
+        .compare-card.period-a {
+            border-top: 3px solid var(--color-primary);
+        }
+
+        .compare-card.period-b {
+            border-top: 3px solid var(--color-secondary);
+        }
+
+        .compare-card.diff {
+            border-top: 3px solid var(--color-info);
+        }
+
+        .compare-label {
+            font-size: 0.85rem;
+            color: var(--color-text-muted);
+            margin-bottom: var(--space-xs);
+        }
+
+        .compare-title {
+            font-family: var(--font-display);
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: var(--space-lg);
+        }
+
+        .compare-stat {
+            margin-bottom: var(--space-md);
+        }
+
+        .compare-stat-label {
+            font-size: 0.85rem;
+            color: var(--color-text-muted);
+        }
+
+        .compare-stat-value {
+            font-family: var(--font-display);
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--color-text);
+        }
+
+        .compare-sub {
+            font-size: 0.9rem;
+            color: var(--color-text-soft);
+            margin-top: var(--space-xs);
+        }
+
+        .diff-positive {
+            color: var(--color-success) !important;
+        }
+
+        .diff-negative {
+            color: var(--color-error) !important;
+        }
+
+        @media (max-width: 900px) {
+            .compare-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Background Pattern -->
+    <div class="bg-pattern">
+        <div class="floating-shape floating-shape-1"></div>
+        <div class="floating-shape floating-shape-2"></div>
+        <div class="floating-shape floating-shape-3"></div>
+    </div>
+
+    <div class="app-layout">
+        <!-- Mobile Menu Button -->
+        <button class="mobile-menu-btn" id="menu-toggle" aria-label="เปิดเมนู">☰</button>
+        <div class="mobile-overlay" id="mobile-overlay"></div>
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="brand-logo">PCC</div>
+                <div class="brand-text">
+                    <h1>PCC-MO</h1>
+                    <p>Concrete Monitor</p>
+                </div>
+            </div>
+
+            <nav class="nav-menu">
+                <a href="/" class="nav-item">
+                    <span class="nav-icon">📊</span>
+                    <span>Dashboard</span>
+                </a>
+                <a href="/orders" class="nav-item">
+                    <span class="nav-icon">📋</span>
+                    <span>คำสั่งซื้อ</span>
+                </a>
+                <a href="/analytics" class="nav-item">
+                    <span class="nav-icon">📈</span>
+                    <span>วิเคราะห์</span>
+                </a>
+                <a href="/compare" class="nav-item active">
+                    <span class="nav-icon">⚖️</span>
+                    <span>เปรียบเทียบ</span>
+                </a>
+                <a href="/settings" class="nav-item">
+                    <span class="nav-icon">⚙️</span>
+                    <span>ตั้งค่า</span>
+                </a>
+            </nav>
+
+            <div class="nav-footer">
+                <div class="status-indicator">
+                    <span class="status-dot"></span>
+                    <span>Live Dashboard</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="page-header">
+                <div>
+                    <h1 class="page-title">เปรียบเทียบ</h1>
+                    <p class="page-subtitle">เปรียบเทียบข้อมูลระหว่างสองช่วงเวลา</p>
+                </div>
+                <div class="page-actions">
+                    <button class="btn btn-primary" onclick="compare.loadComparison()">
+                        ⚖️ เปรียบเทียบ
+                    </button>
+                </div>
+            </header>
+
+            <!-- Period Selectors -->
+            <section class="grid-2 mb-lg">
+                <!-- Period A -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title" style="color: var(--color-primary);">📅 ช่วง A</h3>
+                    </div>
+                    <div class="form-group mb-md">
+                        <label class="form-label">วันเริ่มต้น</label>
+                        <input type="date" id="a-start" class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">วันสิ้นสุด</label>
+                        <input type="date" id="a-end" class="form-input">
+                    </div>
+                    <div class="quick-dates mt-md">
+                        <button class="quick-date-btn" onclick="compare.setPreset('a', 'month')">เดือนนี้</button>
+                        <button class="quick-date-btn" onclick="compare.setPreset('a', 'lastMonth')">เดือนก่อน</button>
+                        <button class="quick-date-btn" onclick="compare.setPreset('a', 'quarter')">ไตรมาสนี้</button>
+                    </div>
+                </div>
+
+                <!-- Period B -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title" style="color: var(--color-secondary);">📅 ช่วง B</h3>
+                    </div>
+                    <div class="form-group mb-md">
+                        <label class="form-label">วันเริ่มต้น</label>
+                        <input type="date" id="b-start" class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">วันสิ้นสุด</label>
+                        <input type="date" id="b-end" class="form-input">
+                    </div>
+                    <div class="quick-dates mt-md">
+                        <button class="quick-date-btn" onclick="compare.setPreset('b', 'month')">เดือนนี้</button>
+                        <button class="quick-date-btn" onclick="compare.setPreset('b', 'lastMonth')">เดือนก่อน</button>
+                        <button class="quick-date-btn" onclick="compare.setPreset('b', 'quarter')">ไตรมาสนี้</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Comparison Results -->
+            <section class="compare-grid" id="compare-results">
+                <!-- Period A Results -->
+                <div class="compare-card period-a">
+                    <p class="compare-title">📊 ช่วง A</p>
+                    <div class="compare-stat">
+                        <p class="compare-stat-label">จำนวนรายการ</p>
+                        <p class="compare-stat-value" id="a-orders">-</p>
+                    </div>
+                    <div class="compare-sub">
+                        ปูนรวม: <strong id="a-cement">-</strong> คิว
+                    </div>
+                    <div class="compare-sub">
+                        เฉลี่ยต่อรายการ: <strong id="a-avg">-</strong> คิว
+                    </div>
+                </div>
+
+                <!-- Period B Results -->
+                <div class="compare-card period-b">
+                    <p class="compare-title">📊 ช่วง B</p>
+                    <div class="compare-stat">
+                        <p class="compare-stat-label">จำนวนรายการ</p>
+                        <p class="compare-stat-value" id="b-orders">-</p>
+                    </div>
+                    <div class="compare-sub">
+                        ปูนรวม: <strong id="b-cement">-</strong> คิว
+                    </div>
+                    <div class="compare-sub">
+                        เฉลี่ยต่อรายการ: <strong id="b-avg">-</strong> คิว
+                    </div>
+                </div>
+
+                <!-- Difference -->
+                <div class="compare-card diff">
+                    <p class="compare-title">📈 ส่วนต่าง (A - B)</p>
+                    <div class="compare-stat">
+                        <p class="compare-stat-label">จำนวนรายการ</p>
+                        <p class="compare-stat-value" id="diff-orders">-</p>
+                    </div>
+                    <div class="compare-sub">
+                        ปูนรวม: <strong id="diff-cement">-</strong> คิว
+                    </div>
+                    <div class="compare-sub">
+                        เฉลี่ยต่อรายการ: <strong id="diff-avg">-</strong> คิว
+                    </div>
+                </div>
+            </section>
+
+            <!-- Summary Message -->
+            <section class="card mt-lg">
+                <div class="card-header">
+                    <h3 class="card-title">💡 สรุปผล</h3>
+                </div>
+                <p class="text-soft" id="compare-summary">
+                    เลือกช่วงเวลาและกด "เปรียบเทียบ" เพื่อดูผลลัพธ์
+                </p>
+            </section>
+        </main>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <script src="/js/main.js"></script>
+    <script>
+        const compare = {
+            init() {
+                this.setDefaultPeriods();
+            },
+
+            setDefaultPeriods() {
+                const today = new Date();
+                const currentMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+                const lastMonthStart = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+                const lastMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0);
+
+                // Period A: Current month
+                PCCMO.setInputValue('a-start', PCCMO.toISODate(currentMonthStart));
+                PCCMO.setInputValue('a-end', PCCMO.toISODate(today));
+
+                // Period B: Last month
+                PCCMO.setInputValue('b-start', PCCMO.toISODate(lastMonthStart));
+                PCCMO.setInputValue('b-end', PCCMO.toISODate(lastMonthEnd));
+            },
+
+            setPreset(period, preset) {
+                const today = new Date();
+                let start, end;
+
+                switch (preset) {
+                    case 'month':
+                        start = new Date(today.getFullYear(), today.getMonth(), 1);
+                        end = today;
+                        break;
+                    case 'lastMonth':
+                        start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+                        end = new Date(today.getFullYear(), today.getMonth(), 0);
+                        break;
+                    case 'quarter':
+                        const quarter = Math.floor(today.getMonth() / 3);
+                        start = new Date(today.getFullYear(), quarter * 3, 1);
+                        end = today;
+                        break;
+                }
+
+                PCCMO.setInputValue(`${period}-start`, PCCMO.toISODate(start));
+                PCCMO.setInputValue(`${period}-end`, PCCMO.toISODate(end));
+            },
+
+            async loadComparison() {
+                const aStart = PCCMO.getInputValue('a-start');
+                const aEnd = PCCMO.getInputValue('a-end');
+                const bStart = PCCMO.getInputValue('b-start');
+                const bEnd = PCCMO.getInputValue('b-end');
+
+                if (!aStart || !aEnd || !bStart || !bEnd) {
+                    PCCMO.showToast('กรุณาเลือกช่วงเวลาให้ครบ', 'error');
+                    return;
+                }
+
+                try {
+                    const [dataA, dataB] = await Promise.all([
+                        PCCMO.fetchAnalytics({ startDate: aStart, endDate: aEnd }),
+                        PCCMO.fetchAnalytics({ startDate: bStart, endDate: bEnd })
+                    ]);
+
+                    this.renderComparison(dataA, dataB);
+                } catch (error) {
+                    console.error('Comparison error:', error);
+                    PCCMO.showToast('เกิดข้อผิดพลาดในการโหลดข้อมูล', 'error');
+                }
+            },
+
+            renderComparison(dataA, dataB) {
+                const totalsA = dataA.totals || {};
+                const totalsB = dataB.totals || {};
+
+                // Period A
+                PCCMO.setText('a-orders', PCCMO.formatNumber(totalsA.order_count || 0));
+                PCCMO.setText('a-cement', PCCMO.formatDecimal(totalsA.total_cement || 0));
+                PCCMO.setText('a-avg', PCCMO.formatDecimal(totalsA.avg_cement || 0));
+
+                // Period B
+                PCCMO.setText('b-orders', PCCMO.formatNumber(totalsB.order_count || 0));
+                PCCMO.setText('b-cement', PCCMO.formatDecimal(totalsB.total_cement || 0));
+                PCCMO.setText('b-avg', PCCMO.formatDecimal(totalsB.avg_cement || 0));
+
+                // Differences
+                const diffOrders = (totalsA.order_count || 0) - (totalsB.order_count || 0);
+                const diffCement = (totalsA.total_cement || 0) - (totalsB.total_cement || 0);
+                const diffAvg = (totalsA.avg_cement || 0) - (totalsB.avg_cement || 0);
+
+                this.setDiffValue('diff-orders', diffOrders, false);
+                this.setDiffValue('diff-cement', diffCement, true);
+                this.setDiffValue('diff-avg', diffAvg, true);
+
+                // Summary
+                const summary = this.generateSummary(totalsA, totalsB, diffOrders, diffCement);
+                PCCMO.setText('compare-summary', summary);
+
+                PCCMO.showToast('เปรียบเทียบสำเร็จ', 'success');
+            },
+
+            setDiffValue(id, value, isDecimal) {
+                const el = document.getElementById(id);
+                if (!el) return;
+
+                const formatted = isDecimal ? PCCMO.formatDecimal(value) : PCCMO.formatNumber(value);
+                const prefix = value >= 0 ? '+' : '';
+                el.textContent = prefix + formatted;
+                el.classList.toggle('diff-positive', value > 0);
+                el.classList.toggle('diff-negative', value < 0);
+            },
+
+            generateSummary(totalsA, totalsB, diffOrders, diffCement) {
+                const ordersA = totalsA.order_count || 0;
+                const ordersB = totalsB.order_count || 0;
+
+                if (ordersA === 0 && ordersB === 0) {
+                    return 'ไม่มีข้อมูลในทั้งสองช่วง';
+                }
+
+                let summary = '';
+
+                if (diffOrders > 0) {
+                    summary += `ช่วง A มีคำสั่งซื้อมากกว่าช่วง B ${PCCMO.formatNumber(diffOrders)} รายการ`;
+                } else if (diffOrders < 0) {
+                    summary += `ช่วง B มีคำสั่งซื้อมากกว่าช่วง A ${PCCMO.formatNumber(Math.abs(diffOrders))} รายการ`;
+                } else {
+                    summary += 'ทั้งสองช่วงมีจำนวนคำสั่งซื้อเท่ากัน';
+                }
+
+                summary += ' • ';
+
+                if (diffCement > 0) {
+                    summary += `ช่วง A ใช้ปูนมากกว่า ${PCCMO.formatDecimal(diffCement)} คิว`;
+                } else if (diffCement < 0) {
+                    summary += `ช่วง B ใช้ปูนมากกว่า ${PCCMO.formatDecimal(Math.abs(diffCement))} คิว`;
+                } else {
+                    summary += 'ทั้งสองช่วงใช้ปูนเท่ากัน';
+                }
+
+                return summary;
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', () => compare.init());
+    </script>
+</body>
+
+</html>

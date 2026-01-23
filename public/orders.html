@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PCC-MO | คำสั่งซื้อ</title>
+    <meta name="description" content="รายการคำสั่งซื้อคอนกรีตพร้อมตัวกรองละเอียด">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Sarabun:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+
+<body>
+    <!-- Background Pattern -->
+    <div class="bg-pattern">
+        <div class="floating-shape floating-shape-1"></div>
+        <div class="floating-shape floating-shape-2"></div>
+        <div class="floating-shape floating-shape-3"></div>
+    </div>
+
+    <div class="app-layout">
+        <!-- Mobile Menu Button -->
+        <button class="mobile-menu-btn" id="menu-toggle" aria-label="เปิดเมนู">☰</button>
+        <div class="mobile-overlay" id="mobile-overlay"></div>
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="brand-logo">PCC</div>
+                <div class="brand-text">
+                    <h1>PCC-MO</h1>
+                    <p>Concrete Monitor</p>
+                </div>
+            </div>
+
+            <nav class="nav-menu">
+                <a href="/" class="nav-item">
+                    <span class="nav-icon">📊</span>
+                    <span>Dashboard</span>
+                </a>
+                <a href="/orders" class="nav-item active">
+                    <span class="nav-icon">📋</span>
+                    <span>คำสั่งซื้อ</span>
+                </a>
+                <a href="/analytics" class="nav-item">
+                    <span class="nav-icon">📈</span>
+                    <span>วิเคราะห์</span>
+                </a>
+                <a href="/compare" class="nav-item">
+                    <span class="nav-icon">⚖️</span>
+                    <span>เปรียบเทียบ</span>
+                </a>
+                <a href="/settings" class="nav-item">
+                    <span class="nav-icon">⚙️</span>
+                    <span>ตั้งค่า</span>
+                </a>
+            </nav>
+
+            <div class="nav-footer">
+                <div class="status-indicator">
+                    <span class="status-dot"></span>
+                    <span>Live Dashboard</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="page-header">
+                <div>
+                    <h1 class="page-title">คำสั่งซื้อ</h1>
+                    <p class="page-subtitle">รายการสั่งคอนกรีตทั้งหมดพร้อมตัวกรองละเอียด</p>
+                </div>
+                <div class="page-actions">
+                    <button class="btn btn-secondary" onclick="orders.resetFilters()">
+                        🔄 ล้างตัวกรอง
+                    </button>
+                    <button class="btn btn-primary" onclick="orders.syncToSheets()">
+                        📤 Sync to Sheets
+                    </button>
+                </div>
+            </header>
+
+            <!-- Filter Panel -->
+            <section class="filter-panel">
+                <div class="filter-grid">
+                    <!-- Date Range -->
+                    <div class="form-group" style="grid-column: span 2;">
+                        <label class="form-label">ช่วงวันที่</label>
+                        <div class="range-group">
+                            <input type="date" id="filter-start" class="form-input">
+                            <span class="range-sep">→</span>
+                            <input type="date" id="filter-end" class="form-input">
+                        </div>
+                        <div class="quick-dates">
+                            <button class="quick-date-btn" data-range="today">วันนี้</button>
+                            <button class="quick-date-btn" data-range="7d">7 วัน</button>
+                            <button class="quick-date-btn" data-range="30d">30 วัน</button>
+                            <button class="quick-date-btn" data-range="month">เดือนนี้</button>
+                            <button class="quick-date-btn" data-range="quarter">ไตรมาสนี้</button>
+                            <button class="quick-date-btn" data-range="year">ปีนี้</button>
+                        </div>
+                    </div>
+
+                    <!-- Sync Status -->
+                    <div class="form-group">
+                        <label class="form-label">สถานะ Sync</label>
+                        <select id="filter-sync" class="form-select">
+                            <option value="">ทั้งหมด</option>
+                            <option value="1">✓ Synced</option>
+                            <option value="0">○ Pending</option>
+                        </select>
+                    </div>
+
+                    <!-- Search -->
+                    <div class="form-group">
+                        <label class="form-label">ค้นหา</label>
+                        <input type="search" id="filter-search" class="form-input"
+                            placeholder="รายละเอียด, หมายเหตุ...">
+                    </div>
+                </div>
+
+                <!-- Chip Filters Row -->
+                <div class="filter-row">
+                    <div class="form-group" style="flex: 1;">
+                        <label class="form-label">โรงงาน</label>
+                        <div class="chip-group" id="factory-chips"></div>
+                    </div>
+                </div>
+
+                <div class="filter-row" style="border-top: none; padding-top: 0; margin-top: 0;">
+                    <div class="form-group" style="flex: 1;">
+                        <label class="form-label">กลุ่มสินค้า</label>
+                        <div class="chip-group" id="product-chips"></div>
+                    </div>
+                </div>
+
+                <div class="filter-row" style="border-top: none; padding-top: 0; margin-top: 0;">
+                    <div class="form-group" style="flex: 1;">
+                        <label class="form-label">หัวหน้าควบคุม</label>
+                        <div class="chip-group" id="supervisor-chips"></div>
+                    </div>
+                </div>
+
+                <!-- Numeric Range Filters -->
+                <div class="filter-row">
+                    <div class="form-group">
+                        <label class="form-label">ปูน (คิว)</label>
+                        <div class="range-group">
+                            <input type="number" id="cement-min" class="form-input" placeholder="ขั้นต่ำ">
+                            <span class="range-sep">–</span>
+                            <input type="number" id="cement-max" class="form-input" placeholder="สูงสุด">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">ปูนโหลด (คิว)</label>
+                        <div class="range-group">
+                            <input type="number" id="loaded-min" class="form-input" placeholder="ขั้นต่ำ">
+                            <span class="range-sep">–</span>
+                            <input type="number" id="loaded-max" class="form-input" placeholder="สูงสุด">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">ส่วนต่าง (คิว)</label>
+                        <div class="range-group">
+                            <input type="number" id="diff-min" class="form-input" placeholder="ขั้นต่ำ">
+                            <span class="range-sep">–</span>
+                            <input type="number" id="diff-max" class="form-input" placeholder="สูงสุด">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Filter Actions -->
+                <div class="filter-actions">
+                    <button class="btn btn-primary" onclick="orders.applyFilters()">
+                        🔍 ประมวลผล
+                    </button>
+                    <button class="btn btn-secondary" onclick="orders.resetFilters()">
+                        ล้างทั้งหมด
+                    </button>
+                    <span class="text-muted" style="margin-left: auto;" id="filter-summary">
+                        แสดง 0 รายการ
+                    </span>
+                </div>
+            </section>
+
+            <!-- Orders Table -->
+            <section class="card">
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>วันที่</th>
+                                <th>โรงงาน</th>
+                                <th>รหัส</th>
+                                <th>รายละเอียด</th>
+                                <th>ปูน (คิว)</th>
+                                <th>โหลด</th>
+                                <th>ส่วนต่าง</th>
+                                <th>สถานะ</th>
+                                <th>สร้างเมื่อ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="orders-tbody">
+                            <tr>
+                                <td colspan="10" class="text-center text-muted" style="padding: 2rem;">
+                                    <div class="loading-spinner" style="margin: 0 auto 1rem;"></div>
+                                    กำลังโหลด...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                <div class="pagination">
+                    <button class="page-btn" id="prev-btn" onclick="orders.prevPage()" disabled>
+                        ← ก่อนหน้า
+                    </button>
+                    <span class="page-info" id="page-info">หน้า 1 / 1</span>
+                    <button class="page-btn" id="next-btn" onclick="orders.nextPage()">
+                        ถัดไป →
+                    </button>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <script src="/js/main.js"></script>
+    <script>
+        const orders = {
+            currentPage: 1,
+            pageSize: 20,
+            totalOrders: 0,
+            filters: {},
+
+            async init() {
+                this.setDefaultFilters();
+                this.initQuickDates();
+                await this.loadFilterOptions();
+                await this.loadOrders();
+            },
+
+            setDefaultFilters() {
+                const today = new Date();
+                const start = new Date(today.getFullYear(), today.getMonth(), 1);
+
+                PCCMO.setInputValue('filter-start', PCCMO.toISODate(start));
+                PCCMO.setInputValue('filter-end', PCCMO.toISODate(today));
+            },
+
+            initQuickDates() {
+                document.querySelectorAll('.quick-date-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const range = PCCMO.getDateRangePreset(btn.dataset.range);
+                        PCCMO.setInputValue('filter-start', range.start);
+                        PCCMO.setInputValue('filter-end', range.end);
+                    });
+                });
+            },
+
+            async loadFilterOptions() {
+                try {
+                    const options = await PCCMO.fetchFilterOptions();
+                    PCCMO.renderChipGroup('factory-chips', options.factories, v => `โรง ${v}`);
+                    PCCMO.renderChipGroup('product-chips', options.products, v => v);
+                    PCCMO.renderChipGroup('supervisor-chips', options.supervisors, v => v);
+                } catch (error) {
+                    console.error('Filter options error:', error);
+                }
+            },
+
+            getFiltersFromForm() {
+                return {
+                    startDate: PCCMO.getInputValue('filter-start'),
+                    endDate: PCCMO.getInputValue('filter-end'),
+                    syncStatus: PCCMO.getInputValue('filter-sync'),
+                    search: PCCMO.getInputValue('filter-search'),
+                    factoryIds: PCCMO.getSelectedChips('factory-chips'),
+                    productCodes: PCCMO.getSelectedChips('product-chips'),
+                    supervisors: PCCMO.getSelectedChips('supervisor-chips'),
+                    minCement: PCCMO.getInputValue('cement-min'),
+                    maxCement: PCCMO.getInputValue('cement-max'),
+                    minLoaded: PCCMO.getInputValue('loaded-min'),
+                    maxLoaded: PCCMO.getInputValue('loaded-max'),
+                    minDifference: PCCMO.getInputValue('diff-min'),
+                    maxDifference: PCCMO.getInputValue('diff-max')
+                };
+            },
+
+            applyFilters() {
+                this.filters = this.getFiltersFromForm();
+                this.currentPage = 1;
+                this.loadOrders();
+            },
+
+            async loadOrders() {
+                const tbody = document.getElementById('orders-tbody');
+                tbody.innerHTML = `
+          <tr>
+            <td colspan="10" class="text-center text-muted" style="padding: 2rem;">
+              <div class="loading-spinner" style="margin: 0 auto 1rem;"></div>
+              กำลังโหลด...
+            </td>
+          </tr>
+        `;
+
+                try {
+                    const offset = (this.currentPage - 1) * this.pageSize;
+                    const data = await PCCMO.fetchOrders(this.filters, this.pageSize, offset);
+
+                    this.totalOrders = data.total || 0;
+                    this.renderOrders(data.orders);
+                    this.updatePagination();
+                    this.updateFilterSummary();
+                } catch (error) {
+                    console.error('Load orders error:', error);
+                    tbody.innerHTML = `
+            <tr>
+              <td colspan="10" class="text-center text-muted" style="padding: 2rem;">
+                ❌ เกิดข้อผิดพลาดในการโหลดข้อมูล
+              </td>
+            </tr>
+          `;
+                }
+            },
+
+            renderOrders(ordersList) {
+                const tbody = document.getElementById('orders-tbody');
+
+                if (!ordersList || ordersList.length === 0) {
+                    tbody.innerHTML = `
+            <tr>
+              <td colspan="10" class="text-center text-muted" style="padding: 2rem;">
+                ไม่พบข้อมูลตามเงื่อนไข
+              </td>
+            </tr>
+          `;
+                    return;
+                }
+
+                tbody.innerHTML = ordersList.map(order => {
+                    const cement = Number(order.cement_quantity);
+                    const loaded = Number(order.loaded_quantity);
+                    const diff = Number(order.difference);
+
+                    return `
+            <tr>
+              <td><strong>#${order.id}</strong></td>
+              <td>${PCCMO.formatDate(order.order_date)}</td>
+              <td>🏭 โรง ${order.factory_id || '-'}</td>
+              <td>${PCCMO.escapeHtml(order.product_code || '-')}</td>
+              <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis;" title="${PCCMO.escapeHtml(order.product_detail || '')}">
+                ${PCCMO.escapeHtml(order.product_detail || '-')}
+              </td>
+              <td class="font-semibold">${Number.isFinite(cement) ? cement.toFixed(2) : '-'}</td>
+              <td>${Number.isFinite(loaded) ? loaded.toFixed(2) : '-'}</td>
+              <td class="${diff > 0 ? 'text-success' : diff < 0 ? 'text-error' : ''}">${Number.isFinite(diff) ? diff.toFixed(2) : '-'}</td>
+              <td>
+                ${order.synced_to_sheets
+                            ? '<span class="badge badge-success">✓ Synced</span>'
+                            : '<span class="badge badge-warning">○ Pending</span>'}
+              </td>
+              <td class="text-muted">${PCCMO.formatDateTime(order.created_at)}</td>
+            </tr>
+          `;
+                }).join('');
+            },
+
+            updatePagination() {
+                const totalPages = Math.ceil(this.totalOrders / this.pageSize) || 1;
+                PCCMO.setText('page-info', `หน้า ${this.currentPage} / ${totalPages}`);
+
+                document.getElementById('prev-btn').disabled = this.currentPage <= 1;
+                document.getElementById('next-btn').disabled = this.currentPage >= totalPages;
+            },
+
+            updateFilterSummary() {
+                PCCMO.setText('filter-summary', `แสดง ${PCCMO.formatNumber(this.totalOrders)} รายการ`);
+            },
+
+            prevPage() {
+                if (this.currentPage > 1) {
+                    this.currentPage--;
+                    this.loadOrders();
+                }
+            },
+
+            nextPage() {
+                const totalPages = Math.ceil(this.totalOrders / this.pageSize);
+                if (this.currentPage < totalPages) {
+                    this.currentPage++;
+                    this.loadOrders();
+                }
+            },
+
+            resetFilters() {
+                this.setDefaultFilters();
+                PCCMO.setInputValue('filter-sync', '');
+                PCCMO.setInputValue('filter-search', '');
+                PCCMO.setInputValue('cement-min', '');
+                PCCMO.setInputValue('cement-max', '');
+                PCCMO.setInputValue('loaded-min', '');
+                PCCMO.setInputValue('loaded-max', '');
+                PCCMO.setInputValue('diff-min', '');
+                PCCMO.setInputValue('diff-max', '');
+                PCCMO.clearChipSelection('factory-chips');
+                PCCMO.clearChipSelection('product-chips');
+                PCCMO.clearChipSelection('supervisor-chips');
+                this.applyFilters();
+            },
+
+            async syncToSheets() {
+                try {
+                    PCCMO.showToast('📤 กำลัง Sync ไป Google Sheets...', 'info');
+                    const result = await PCCMO.syncToSheets();
+
+                    if (result.error) {
+                        PCCMO.showToast(`❌ ${result.error}`, 'error');
+                    } else if (result.synced > 0) {
+                        PCCMO.showToast(`✅ Sync สำเร็จ ${result.synced} รายการ`, 'success');
+                        await this.loadOrders();
+                    } else {
+                        PCCMO.showToast('✓ ไม่มีรายการที่ต้อง Sync', 'success');
+                    }
+                } catch (error) {
+                    PCCMO.showToast('❌ เกิดข้อผิดพลาดในการ Sync', 'error');
+                }
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', () => orders.init());
+    </script>
+</body>
+
+</html>

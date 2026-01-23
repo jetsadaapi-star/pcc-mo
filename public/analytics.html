@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PCC-MO | วิเคราะห์</title>
+    <meta name="description" content="วิเคราะห์ข้อมูลการใช้ปูนและกราฟแนวโน้ม">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Sarabun:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+
+<body>
+    <!-- Background Pattern -->
+    <div class="bg-pattern">
+        <div class="floating-shape floating-shape-1"></div>
+        <div class="floating-shape floating-shape-2"></div>
+        <div class="floating-shape floating-shape-3"></div>
+    </div>
+
+    <div class="app-layout">
+        <!-- Mobile Menu Button -->
+        <button class="mobile-menu-btn" id="menu-toggle" aria-label="เปิดเมนู">☰</button>
+        <div class="mobile-overlay" id="mobile-overlay"></div>
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="brand-logo">PCC</div>
+                <div class="brand-text">
+                    <h1>PCC-MO</h1>
+                    <p>Concrete Monitor</p>
+                </div>
+            </div>
+
+            <nav class="nav-menu">
+                <a href="/" class="nav-item">
+                    <span class="nav-icon">📊</span>
+                    <span>Dashboard</span>
+                </a>
+                <a href="/orders" class="nav-item">
+                    <span class="nav-icon">📋</span>
+                    <span>คำสั่งซื้อ</span>
+                </a>
+                <a href="/analytics" class="nav-item active">
+                    <span class="nav-icon">📈</span>
+                    <span>วิเคราะห์</span>
+                </a>
+                <a href="/compare" class="nav-item">
+                    <span class="nav-icon">⚖️</span>
+                    <span>เปรียบเทียบ</span>
+                </a>
+                <a href="/settings" class="nav-item">
+                    <span class="nav-icon">⚙️</span>
+                    <span>ตั้งค่า</span>
+                </a>
+            </nav>
+
+            <div class="nav-footer">
+                <div class="status-indicator">
+                    <span class="status-dot"></span>
+                    <span>Live Dashboard</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="page-header">
+                <div>
+                    <h1 class="page-title">วิเคราะห์</h1>
+                    <p class="page-subtitle">กราฟและสถิติเชิงลึก</p>
+                </div>
+                <div class="page-actions">
+                    <button class="btn btn-secondary" onclick="analytics.resetFilters()">
+                        🔄 ล้างตัวกรอง
+                    </button>
+                    <button class="btn btn-primary" onclick="analytics.applyFilters()">
+                        🔍 ประมวลผล
+                    </button>
+                </div>
+            </header>
+
+            <!-- Filter Panel -->
+            <section class="filter-panel">
+                <div class="filter-grid">
+                    <!-- Date Range -->
+                    <div class="form-group" style="grid-column: span 2;">
+                        <label class="form-label">ช่วงวันที่</label>
+                        <div class="range-group">
+                            <input type="date" id="filter-start" class="form-input">
+                            <span class="range-sep">→</span>
+                            <input type="date" id="filter-end" class="form-input">
+                        </div>
+                        <div class="quick-dates">
+                            <button class="quick-date-btn" data-range="today">วันนี้</button>
+                            <button class="quick-date-btn" data-range="7d">7 วัน</button>
+                            <button class="quick-date-btn" data-range="30d">30 วัน</button>
+                            <button class="quick-date-btn" data-range="month">เดือนนี้</button>
+                            <button class="quick-date-btn" data-range="quarter">ไตรมาสนี้</button>
+                            <button class="quick-date-btn" data-range="year">ปีนี้</button>
+                        </div>
+                    </div>
+
+                    <!-- Period Grouping -->
+                    <div class="form-group">
+                        <label class="form-label">การจัดกลุ่มกราฟ</label>
+                        <div class="chip-group" style="gap: 0.5rem;">
+                            <label class="chip active" id="period-daily">
+                                <input type="radio" name="period" value="daily" class="chip-checkbox" checked>
+                                <span class="chip-label">รายวัน</span>
+                            </label>
+                            <label class="chip" id="period-monthly">
+                                <input type="radio" name="period" value="monthly" class="chip-checkbox">
+                                <span class="chip-label">รายเดือน</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Sync Status -->
+                    <div class="form-group">
+                        <label class="form-label">สถานะ Sync</label>
+                        <select id="filter-sync" class="form-select">
+                            <option value="">ทั้งหมด</option>
+                            <option value="1">✓ Synced</option>
+                            <option value="0">○ Pending</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Factory Chips -->
+                <div class="filter-row">
+                    <div class="form-group" style="flex: 1;">
+                        <label class="form-label">โรงงาน</label>
+                        <div class="chip-group" id="factory-chips"></div>
+                    </div>
+                </div>
+
+                <!-- Product Chips -->
+                <div class="filter-row" style="border-top: none; padding-top: 0; margin-top: 0;">
+                    <div class="form-group" style="flex: 1;">
+                        <label class="form-label">กลุ่มสินค้า</label>
+                        <div class="chip-group" id="product-chips"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Summary Cards -->
+            <section class="kpi-grid">
+                <div class="kpi-card">
+                    <div class="kpi-icon">📦</div>
+                    <p class="kpi-label">รายการตามตัวกรอง</p>
+                    <p class="kpi-value" id="stat-orders">-</p>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-icon">🏭</div>
+                    <p class="kpi-label">ปูนรวม</p>
+                    <p class="kpi-value" id="stat-cement">- <small>คิว</small></p>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-icon">📤</div>
+                    <p class="kpi-label">ปูนโหลดรวม</p>
+                    <p class="kpi-value" id="stat-loaded">- <small>คิว</small></p>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-icon">📊</div>
+                    <p class="kpi-label">ส่วนต่างรวม</p>
+                    <p class="kpi-value" id="stat-diff">- <small>คิว</small></p>
+                </div>
+            </section>
+
+            <!-- Charts Grid -->
+            <section class="grid-2 mb-lg">
+                <!-- Trend Chart -->
+                <div class="card" style="grid-column: span 2;">
+                    <div class="card-header">
+                        <h3 class="card-title">📈 แนวโน้มการใช้ปูน</h3>
+                        <span class="card-badge" id="trend-period-badge">รายวัน</span>
+                    </div>
+                    <div class="chart-canvas" id="trend-chart">
+                        <div class="skeleton" style="height: 160px;"></div>
+                    </div>
+                </div>
+
+                <!-- Sync Status -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">✅ สถานะ Sync</h3>
+                    </div>
+                    <div class="donut-chart" id="sync-chart">
+                        <span class="donut-center" id="sync-percent">0%</span>
+                    </div>
+                    <div class="chart-legend" id="sync-legend">
+                        <div class="legend-item">
+                            <span class="legend-dot synced"></span>
+                            <span>Synced: <strong id="sync-count">0</strong></span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-dot pending"></span>
+                            <span>Pending: <strong id="pending-count">0</strong></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- By Factory -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">🏭 ใช้ปูนตามโรงงาน</h3>
+                    </div>
+                    <div id="factory-chart">
+                        <div class="skeleton" style="height: 120px;"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- More Charts -->
+            <section class="grid-2">
+                <!-- By Product -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">📦 ใช้ปูนตามกลุ่มสินค้า</h3>
+                    </div>
+                    <div id="product-chart">
+                        <div class="skeleton" style="height: 120px;"></div>
+                    </div>
+                </div>
+
+                <!-- By Supervisor -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">👷 ใช้ปูนตามหัวหน้าควบคุม</h3>
+                    </div>
+                    <div id="supervisor-chart">
+                        <div class="skeleton" style="height: 120px;"></div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <script src="/js/main.js"></script>
+    <script>
+        const analytics = {
+            period: 'daily',
+            filters: {},
+
+            async init() {
+                this.setDefaultFilters();
+                this.initQuickDates();
+                this.initPeriodToggle();
+                await this.loadFilterOptions();
+                await this.loadAnalytics();
+            },
+
+            setDefaultFilters() {
+                const today = new Date();
+                const start = new Date(today.getFullYear(), today.getMonth(), 1);
+
+                PCCMO.setInputValue('filter-start', PCCMO.toISODate(start));
+                PCCMO.setInputValue('filter-end', PCCMO.toISODate(today));
+            },
+
+            initQuickDates() {
+                document.querySelectorAll('.quick-date-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const range = PCCMO.getDateRangePreset(btn.dataset.range);
+                        PCCMO.setInputValue('filter-start', range.start);
+                        PCCMO.setInputValue('filter-end', range.end);
+                    });
+                });
+            },
+
+            initPeriodToggle() {
+                document.querySelectorAll('input[name="period"]').forEach(radio => {
+                    radio.addEventListener('change', (e) => {
+                        this.period = e.target.value;
+                        document.getElementById('period-daily').classList.toggle('active', this.period === 'daily');
+                        document.getElementById('period-monthly').classList.toggle('active', this.period === 'monthly');
+                        PCCMO.setText('trend-period-badge', this.period === 'monthly' ? 'รายเดือน' : 'รายวัน');
+                    });
+                });
+            },
+
+            async loadFilterOptions() {
+                try {
+                    const options = await PCCMO.fetchFilterOptions();
+                    PCCMO.renderChipGroup('factory-chips', options.factories, v => `โรง ${v}`);
+                    PCCMO.renderChipGroup('product-chips', options.products, v => v);
+                } catch (error) {
+                    console.error('Filter options error:', error);
+                }
+            },
+
+            getFiltersFromForm() {
+                return {
+                    startDate: PCCMO.getInputValue('filter-start'),
+                    endDate: PCCMO.getInputValue('filter-end'),
+                    syncStatus: PCCMO.getInputValue('filter-sync'),
+                    factoryIds: PCCMO.getSelectedChips('factory-chips'),
+                    productCodes: PCCMO.getSelectedChips('product-chips')
+                };
+            },
+
+            applyFilters() {
+                this.filters = this.getFiltersFromForm();
+                this.loadAnalytics();
+            },
+
+            async loadAnalytics() {
+                try {
+                    const data = await PCCMO.fetchAnalytics(this.filters, this.period);
+                    this.renderStats(data);
+                    this.renderTrendChart(data.timeSeries);
+                    this.renderSyncChart(data.syncStatus);
+                    this.renderBarCharts(data);
+                } catch (error) {
+                    console.error('Analytics load error:', error);
+                    PCCMO.showToast('เกิดข้อผิดพลาดในการโหลดข้อมูล', 'error');
+                }
+            },
+
+            renderStats(data) {
+                const totals = data.totals || {};
+
+                PCCMO.setText('stat-orders', PCCMO.formatNumber(totals.order_count || 0));
+
+                document.getElementById('stat-cement').innerHTML =
+                    `${PCCMO.formatDecimal(totals.total_cement || 0)} <small>คิว</small>`;
+
+                document.getElementById('stat-loaded').innerHTML =
+                    `${PCCMO.formatDecimal(totals.total_loaded || 0)} <small>คิว</small>`;
+
+                document.getElementById('stat-diff').innerHTML =
+                    `${PCCMO.formatDecimal(totals.total_difference || 0)} <small>คิว</small>`;
+            },
+
+            renderTrendChart(timeSeries) {
+                PCCMO.renderTrendChart('trend-chart', timeSeries, this.period);
+            },
+
+            renderSyncChart(syncStatus) {
+                const synced = (syncStatus || []).find(s => Number(s.status) === 1)?.count || 0;
+                const pending = (syncStatus || []).find(s => Number(s.status) === 0)?.count || 0;
+                const total = synced + pending;
+                const percent = total > 0 ? Math.round((synced / total) * 100) : 0;
+
+                PCCMO.renderDonutChart('sync-chart', percent);
+                PCCMO.setText('sync-percent', `${percent}%`);
+                PCCMO.setText('sync-count', PCCMO.formatNumber(synced));
+                PCCMO.setText('pending-count', PCCMO.formatNumber(pending));
+            },
+
+            renderBarCharts(data) {
+                PCCMO.renderBarChart('factory-chart', data.byFactory, (key) => {
+                    return key ? `โรง ${key}` : 'ไม่ระบุ';
+                });
+
+                PCCMO.renderBarChart('product-chart', data.byProduct, (key) => {
+                    return key || 'ไม่ระบุรหัส';
+                });
+
+                PCCMO.renderBarChart('supervisor-chart', data.bySupervisor, (key) => {
+                    return key || 'ไม่ระบุ';
+                });
+            },
+
+            resetFilters() {
+                this.setDefaultFilters();
+                this.period = 'daily';
+                document.querySelector('input[name="period"][value="daily"]').checked = true;
+                document.getElementById('period-daily').classList.add('active');
+                document.getElementById('period-monthly').classList.remove('active');
+                PCCMO.setText('trend-period-badge', 'รายวัน');
+
+                PCCMO.setInputValue('filter-sync', '');
+                PCCMO.clearChipSelection('factory-chips');
+                PCCMO.clearChipSelection('product-chips');
+                this.applyFilters();
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', () => analytics.init());
+    </script>
+</body>
+
+</html>
