@@ -12,7 +12,14 @@ const path = require('path');
 const { middleware } = require('./line/lineClient');
 const { handleWebhook } = require('./line/webhook');
 const { initSheetsClient, syncToSheets, testConnection, createHeaderRow } = require('./sheets/sheetsClient');
-const { initDatabase, getAllOrders, getOrderCount, getDailySummary } = require('./database/db');
+const {
+    initDatabase,
+    getAllOrders,
+    getOrderCount,
+    getDailySummary,
+    getSummaryByDate,
+    getSummaryByMonth
+} = require('./database/db');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -83,6 +90,43 @@ app.get('/api/summary/:date', (req, res) => {
     res.json({
         date,
         summary
+    });
+});
+
+// API: รายงานรายวัน/รายเดือน (แยกตามโรงงานและกลุ่มสินค้า)
+app.get('/api/reports', (req, res) => {
+    const period = req.query.period === 'monthly' ? 'monthly' : 'daily';
+
+    if (period === 'monthly') {
+        const month = req.query.month; // YYYY-MM
+        if (!month) {
+            return res.status(400).json({ error: 'month is required' });
+        }
+
+        const byFactory = getSummaryByMonth(month, 'factory');
+        const byProduct = getSummaryByMonth(month, 'product');
+
+        return res.json({
+            period,
+            month,
+            byFactory,
+            byProduct
+        });
+    }
+
+    const date = req.query.date; // YYYY-MM-DD
+    if (!date) {
+        return res.status(400).json({ error: 'date is required' });
+    }
+
+    const byFactory = getSummaryByDate(date, 'factory');
+    const byProduct = getSummaryByDate(date, 'product');
+
+    return res.json({
+        period,
+        date,
+        byFactory,
+        byProduct
     });
 });
 

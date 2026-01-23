@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="th">
 <head>
   <meta charset="UTF-8">
@@ -6,144 +6,248 @@
   <title>PCC-MO Dashboard</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/dashboard.css">
 </head>
 <body>
-  <div class="ambient-bg" aria-hidden="true">
-    <span class="orb orb-1"></span>
-    <span class="orb orb-2"></span>
-    <span class="orb orb-3"></span>
-    <span class="grid-glow"></span>
+  <div class="backdrop" aria-hidden="true">
+    <span class="halo halo-1"></span>
+    <span class="halo halo-2"></span>
+    <span class="halo halo-3"></span>
+    <span class="grid"></span>
   </div>
-  <!-- Header -->
-  <header class="header reveal">
-    <div class="header-content">
-      <div class="logo">
-        <span class="logo-icon">🏭</span>
-        <div class="logo-text">
+
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="brand">
+        <div class="brand-mark">PCC</div>
+        <div class="brand-text">
           <h1>PCC-MO</h1>
           <p>Concrete Order Monitor</p>
         </div>
       </div>
-      <div class="header-stats">
-        <div class="stat-card glass">
-          <span class="stat-icon">📊</span>
-          <div class="stat-info">
-            <span class="stat-value" id="total-orders">-</span>
-            <span class="stat-label">รายการทั้งหมด</span>
-          </div>
+      <div class="header-actions">
+        <button class="btn btn-sync" onclick="syncToSheets()">
+          <span class="sync-icon">📤</span> Sync to Sheets
+        </button>
+        <div class="status-chip">
+          <span class="status-dot"></span>
+          Live Dashboard
         </div>
-        <div class="stat-card glass">
-          <span class="stat-icon">📅</span>
-          <div class="stat-info">
-            <span class="stat-value" id="today-orders">-</span>
-            <span class="stat-label">วันนี้</span>
-          </div>
-        </div>
-        <div class="stat-card glass">
-          <span class="stat-icon">🧱</span>
-          <div class="stat-info">
-            <span class="stat-value" id="total-cement">-</span>
-            <span class="stat-label">ปูนรวม (คิว)</span>
-          </div>
-        </div>
+      </div>
+    </div>
+    <div class="header-metrics">
+      <div class="metric-card">
+        <span class="metric-label">คำสั่งซื้อทั้งหมด</span>
+        <span class="metric-value" id="total-orders">-</span>
+      </div>
+      <div class="metric-card">
+        <span class="metric-label" id="period-orders-label">รายการช่วงที่เลือก</span>
+        <span class="metric-value" id="period-orders">-</span>
+      </div>
+      <div class="metric-card">
+        <span class="metric-label">ปูนรวมช่วงที่เลือก (คิว)</span>
+        <span class="metric-value" id="period-cement">-</span>
       </div>
     </div>
   </header>
 
-  <!-- Main Content -->
-  <main class="main-content">
-    <!-- Filters -->
-    <div class="filters glass reveal delay-1">
-      <div class="filter-group">
-        <label for="date-filter">📅 วันที่</label>
-        <input type="date" id="date-filter" class="filter-input">
-      </div>
-      <div class="filter-group">
-        <label for="factory-filter">🏭 โรงงาน</label>
-        <select id="factory-filter" class="filter-input">
-          <option value="">ทั้งหมด</option>
-          <option value="1">โรง 1</option>
-          <option value="2">โรง 2</option>
-          <option value="3">โรง 3</option>
-          <option value="4">โรง 4</option>
-        </select>
-      </div>
-      <div class="filter-group">
-        <label for="product-filter">📦 รหัสสินค้า</label>
-        <select id="product-filter" class="filter-input">
-          <option value="">ทั้งหมด</option>
-          <option value="A13">A13</option>
-          <option value="A35">A35</option>
-          <option value="A42">A42</option>
-        </select>
-      </div>
-      <button class="btn btn-primary" onclick="loadOrders()">
-        🔍 ค้นหา
-      </button>
-      <button class="btn btn-secondary" onclick="resetFilters()">
-        ↺ รีเซ็ต
-      </button>
-    </div>
+  <nav class="site-nav">
+    <a href="#overview">ภาพรวม</a>
+    <a href="#reports">รายงาน</a>
+    <a href="#orders">คำสั่งซื้อ</a>
+    <a href="#footer">ระบบ</a>
+  </nav>
 
-    <!-- Orders Table -->
-    <div class="table-container glass reveal delay-2" id="orders">
-      <div class="table-header">
-        <h2>📋 รายการสั่งคอนกรีต</h2>
-        <button class="btn btn-sync" onclick="syncToSheets()">
-          <span class="sync-icon">📤</span> Sync to Sheets
-        </button>
+  <main class="site-main">
+    <section id="overview" class="panel">
+      <div class="panel-header">
+        <div>
+          <p class="eyebrow">Dashboard</p>
+          <h2>ภาพรวมการใช้ปูนและการผลิต</h2>
+          <p class="subtext" id="report-range">อัปเดตล่าสุด -</p>
+        </div>
+        <div class="panel-highlight">
+          <div>
+            <p class="highlight-label">โรงงานที่ใช้งาน</p>
+            <p class="highlight-value" id="active-factories">-</p>
+          </div>
+          <div>
+            <p class="highlight-label">กลุ่มสินค้า</p>
+            <p class="highlight-value" id="active-products">-</p>
+          </div>
+        </div>
       </div>
-      <div class="table-wrapper">
-        <table class="orders-table">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>วันที่</th>
-              <th>โรงงาน</th>
-              <th>รหัส</th>
-              <th>รายละเอียด</th>
-              <th>ปูน (คิว)</th>
-              <th>สถานะ Sync</th>
-              <th>สร้างเมื่อ</th>
-            </tr>
-          </thead>
-          <tbody id="orders-tbody">
-            <tr class="loading-row">
-              <td colspan="8">
-                <div class="loading-spinner"></div>
-                <span>กำลังโหลดข้อมูล...</span>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <p class="kpi-title">โรงงานใช้ปูนสูงสุด</p>
+          <p class="kpi-value" id="top-factory">-</p>
+          <p class="kpi-footnote">ตามช่วงเวลาที่เลือก</p>
+        </div>
+        <div class="kpi-card">
+          <p class="kpi-title">กลุ่มสินค้ายอดสูงสุด</p>
+          <p class="kpi-value" id="top-product">-</p>
+          <p class="kpi-footnote">ตามช่วงเวลาที่เลือก</p>
+        </div>
+        <div class="kpi-card">
+          <p class="kpi-title">เฉลี่ยปูนต่อรายการ</p>
+          <p class="kpi-value"><span id="avg-cement">-</span> คิว</p>
+          <p class="kpi-footnote">คำนวณจากคำสั่งซื้อทั้งหมด</p>
+        </div>
       </div>
-      
-      <!-- Pagination -->
-      <div class="pagination">
-        <button class="btn btn-page" id="prev-btn" onclick="prevPage()" disabled>
-          ← ก่อนหน้า
-        </button>
-        <span class="page-info" id="page-info">หน้า 1</span>
-        <button class="btn btn-page" id="next-btn" onclick="nextPage()">
-          ถัดไป →
-        </button>
-      </div>
-    </div>
+    </section>
 
-    <!-- Daily Summary -->
-    <div class="summary-container glass reveal delay-3">
-      <h2>📊 สรุปรายวัน</h2>
-      <div class="summary-grid" id="daily-summary">
-        <p class="no-data">เลือกวันที่เพื่อดูสรุป</p>
+    <section id="reports" class="panel">
+      <div class="panel-header">
+        <div>
+          <p class="eyebrow">Reports</p>
+          <h2>รายงานการใช้ปูนแบบเจาะลึก</h2>
+          <p class="subtext">เลือกดูรายวันหรือรายเดือน พร้อมแยกตามโรงงานและกลุ่มสินค้า</p>
+        </div>
+        <div class="panel-actions">
+          <button class="btn btn-primary" onclick="loadReport()">อัปเดตรายงาน</button>
+        </div>
       </div>
-    </div>
+
+      <div class="report-controls">
+        <div class="control-group">
+          <label>ช่วงเวลา</label>
+          <div class="segmented" role="group" aria-label="เลือกช่วงเวลา">
+            <button type="button" class="segmented-btn is-active" data-period="daily" aria-pressed="true">รายวัน</button>
+            <button type="button" class="segmented-btn" data-period="monthly" aria-pressed="false">รายเดือน</button>
+          </div>
+          <input type="hidden" id="report-period" value="daily">
+        </div>
+        <div class="control-group" id="report-date-group">
+          <label for="report-date">วันที่</label>
+          <input type="date" id="report-date">
+        </div>
+        <div class="control-group" id="report-month-group">
+          <label for="report-month">เดือน</label>
+          <input type="month" id="report-month">
+        </div>
+        <div class="control-group">
+          <label>ตัวช่วย</label>
+          <div class="hint-card">
+            <span>📌</span>
+            ดูการใช้งานปูนแบบเรียลไทม์
+          </div>
+        </div>
+      </div>
+
+      <div class="report-grid">
+        <article class="report-panel">
+          <div class="panel-title">
+            <h3>รายงานตามโรงงาน</h3>
+            <span class="panel-tag">Factory</span>
+          </div>
+          <div class="report-list" id="factory-report-list">
+            <p class="no-data">กำลังโหลดรายงาน...</p>
+          </div>
+        </article>
+        <article class="report-panel">
+          <div class="panel-title">
+            <h3>รายงานตามกลุ่มสินค้า</h3>
+            <span class="panel-tag">Product</span>
+          </div>
+          <div class="report-list" id="product-report-list">
+            <p class="no-data">กำลังโหลดรายงาน...</p>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section id="orders" class="panel">
+      <div class="panel-header">
+        <div>
+          <p class="eyebrow">Orders</p>
+          <h2>รายการสั่งคอนกรีต</h2>
+          <p class="subtext">ค้นหาและตรวจสอบสถานะการ Sync พร้อมกรองข้อมูลตามช่วงเวลา</p>
+        </div>
+        <div class="panel-actions">
+          <span class="chip" id="orders-count">- รายการ</span>
+        </div>
+      </div>
+
+      <div class="filters-panel">
+        <div class="filter-group">
+          <label for="date-filter">วันที่</label>
+          <input type="date" id="date-filter" class="filter-input">
+        </div>
+        <div class="filter-group">
+          <label for="factory-filter">โรงงาน</label>
+          <select id="factory-filter" class="filter-input">
+            <option value="">ทั้งหมด</option>
+            <option value="1">โรง 1</option>
+            <option value="2">โรง 2</option>
+            <option value="3">โรง 3</option>
+            <option value="4">โรง 4</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label for="product-filter">กลุ่มสินค้า</label>
+          <select id="product-filter" class="filter-input">
+            <option value="">ทั้งหมด</option>
+            <option value="A13">A13</option>
+            <option value="A35">A35</option>
+            <option value="A42">A42</option>
+          </select>
+        </div>
+        <button class="btn btn-primary" onclick="loadOrders()">ค้นหา</button>
+        <button class="btn btn-secondary" onclick="resetFilters()">รีเซ็ต</button>
+      </div>
+
+      <div class="table-shell">
+        <div class="table-header">
+          <h3>ตารางคำสั่งซื้อ</h3>
+          <div class="table-actions">
+            <button class="btn btn-ghost" onclick="syncToSheets()">Sync to Sheets</button>
+          </div>
+        </div>
+        <div class="table-wrapper">
+          <table class="orders-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>วันที่</th>
+                <th>โรงงาน</th>
+                <th>รหัส</th>
+                <th>รายละเอียด</th>
+                <th>ปูน (คิว)</th>
+                <th>สถานะ Sync</th>
+                <th>สร้างเมื่อ</th>
+              </tr>
+            </thead>
+            <tbody id="orders-tbody">
+              <tr class="loading-row">
+                <td colspan="8">
+                  <div class="loading-spinner"></div>
+                  <span>กำลังโหลดข้อมูล...</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="pagination">
+          <button class="btn btn-page" id="prev-btn" onclick="prevPage()" disabled>← ก่อนหน้า</button>
+          <span class="page-info" id="page-info">หน้า 1</span>
+          <button class="btn btn-page" id="next-btn" onclick="nextPage()">ถัดไป →</button>
+        </div>
+      </div>
+    </section>
   </main>
 
-  <!-- Toast Notification -->
-  <div class="toast" id="toast"></div>
+  <footer id="footer" class="site-footer">
+    <div>
+      <strong>PCC-MO</strong> | ระบบติดตามการใช้ปูนและคำสั่งซื้อ
+    </div>
+    <div>
+      อัปเดตล่าสุด <span id="last-updated">-</span>
+    </div>
+  </footer>
 
+  <div class="toast" id="toast"></div>
   <script src="/js/dashboard.js"></script>
 </body>
 </html>

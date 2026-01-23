@@ -22,6 +22,10 @@ const dbPath = process.env.DB_PATH
 
 let db = null;
 let isInitialized = false;
+const SUMMARY_GROUPS = {
+  factory: 'factory_id',
+  product: 'product_code'
+};
 
 /**
  * Initialize database
@@ -191,6 +195,59 @@ function getDailySummary(date) {
 }
 
 /**
+ * ดึงสรุปรายวันตามกลุ่ม (โรงงานหรือกลุ่มสินค้า)
+ * @param {string} date
+ * @param {'factory'|'product'} groupBy
+ * @returns {Array}
+ */
+function getSummaryByDate(date, groupBy = 'factory') {
+  if (!db || !date) return [];
+
+  const column = SUMMARY_GROUPS[groupBy];
+  if (!column) return [];
+
+  const results = db.exec(`
+    SELECT 
+      ${column} as group_key,
+      COUNT(*) as order_count,
+      SUM(cement_quantity) as total_cement
+    FROM concrete_orders
+    WHERE order_date = ?
+    GROUP BY ${column}
+    ORDER BY total_cement DESC
+  `, [date]);
+
+  return formatResults(results);
+}
+
+/**
+ * ดึงสรุปรายเดือนตามกลุ่ม (โรงงานหรือกลุ่มสินค้า)
+ * @param {string} month - YYYY-MM
+ * @param {'factory'|'product'} groupBy
+ * @returns {Array}
+ */
+function getSummaryByMonth(month, groupBy = 'factory') {
+  if (!db || !month) return [];
+
+  const column = SUMMARY_GROUPS[groupBy];
+  if (!column) return [];
+
+  const monthPattern = `${month}-%`;
+  const results = db.exec(`
+    SELECT 
+      ${column} as group_key,
+      COUNT(*) as order_count,
+      SUM(cement_quantity) as total_cement
+    FROM concrete_orders
+    WHERE order_date LIKE ?
+    GROUP BY ${column}
+    ORDER BY total_cement DESC
+  `, [monthPattern]);
+
+  return formatResults(results);
+}
+
+/**
  * ดึงคำสั่งซื้อทั้งหมด (พร้อม pagination)
  * @param {number} limit 
  * @param {number} offset 
@@ -245,6 +302,8 @@ module.exports = {
   getOrdersByDate,
   getOrdersByFactory,
   getDailySummary,
+  getSummaryByDate,
+  getSummaryByMonth,
   getAllOrders,
   getOrderCount
 };
