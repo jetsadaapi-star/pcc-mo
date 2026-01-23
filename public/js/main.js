@@ -107,13 +107,15 @@ function formatDateTime(dateStr) {
     const d = new Date(dateStr);
     if (isNaN(d)) return dateStr;
 
-    const day = d.getDate();
-    const month = thaiMonths[d.getMonth()];
-    const year = d.getFullYear() + 543;
-    const hours = String(d.getHours()).padStart(2, '0');
-    const mins = String(d.getMinutes()).padStart(2, '0');
+    // ใช้ timezone Asia/Bangkok เพื่อให้แสดงเวลาไทยถูกต้อง
+    const options = { timeZone: 'Asia/Bangkok' };
+    const day = d.toLocaleString('en-US', { ...options, day: 'numeric' });
+    const monthIdx = parseInt(d.toLocaleString('en-US', { ...options, month: 'numeric' })) - 1;
+    const year = parseInt(d.toLocaleString('en-US', { ...options, year: 'numeric' })) + 543;
+    const hours = d.toLocaleString('en-US', { ...options, hour: '2-digit', hour12: false }).padStart(2, '0');
+    const mins = d.toLocaleString('en-US', { ...options, minute: '2-digit' }).padStart(2, '0');
 
-    return `${day} ${month} ${year} ${hours}:${mins}`;
+    return `${day} ${thaiMonths[monthIdx]} ${year} ${hours}:${mins}`;
 }
 
 function formatMonth(dateStr) {
@@ -146,15 +148,19 @@ function toISODate(date) {
     if (!date) return '';
     if (typeof date === 'string') return date;
 
-    const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, '0');
-    const d = String(date.getDate()).padStart(2, '0');
+    // ใช้ timezone Asia/Bangkok
+    const options = { timeZone: 'Asia/Bangkok' };
+    const y = parseInt(date.toLocaleString('en-US', { ...options, year: 'numeric' }));
+    const m = String(parseInt(date.toLocaleString('en-US', { ...options, month: 'numeric' }))).padStart(2, '0');
+    const d = String(parseInt(date.toLocaleString('en-US', { ...options, day: 'numeric' }))).padStart(2, '0');
 
     return `${y}-${m}-${d}`;
 }
 
 function getDateRangePreset(preset) {
-    const today = new Date();
+    // สร้าง Date object ที่ใช้เวลาไทย
+    const nowStr = new Date().toLocaleString('en-US', { timeZone: 'Asia/Bangkok' });
+    const today = new Date(nowStr);
     let start = new Date(today);
 
     switch (preset) {

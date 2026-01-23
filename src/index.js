@@ -5,6 +5,9 @@
  * ระบบ LINE Bot สำหรับเก็บข้อมูลการสั่งคอนกรีตจากกลุ่มไลน์
  */
 
+// ตั้งค่า Timezone เป็นประเทศไทย (สำหรับ Railway deployment)
+process.env.TZ = 'Asia/Bangkok';
+
 require('dotenv').config();
 
 const express = require('express');
