@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>PCC-MO | Dashboard</title>
-  <meta name="description" content="ระบบติดตามการใช้ปูนและคำสั่งซื้อคอนกรีต">
+  <meta name="description" content="ระบบติดตามการใช้ปูนและสั่งคอนกรีตคอนกรีต">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
@@ -43,7 +43,7 @@
         </a>
         <a href="/orders" class="nav-item">
           <span class="nav-icon">📋</span>
-          <span>คำสั่งซื้อ</span>
+          <span>สั่งคอนกรีต</span>
         </a>
         <a href="/analytics" class="nav-item">
           <span class="nav-icon">📈</span>
@@ -72,7 +72,7 @@
       <header class="page-header">
         <div>
           <h1 class="page-title">Dashboard</h1>
-          <p class="page-subtitle">ภาพรวมการใช้ปูนและคำสั่งซื้อคอนกรีต</p>
+          <p class="page-subtitle">ภาพรวมการใช้ปูนและสั่งคอนกรีตคอนกรีต</p>
         </div>
         <div class="page-actions">
           <button class="btn btn-secondary" id="refresh-btn" onclick="dashboard.refresh()">
@@ -118,7 +118,7 @@
       <section class="kpi-grid">
         <div class="kpi-card">
           <div class="kpi-icon">📦</div>
-          <p class="kpi-label">คำสั่งซื้อทั้งหมด</p>
+          <p class="kpi-label">สั่งคอนกรีตทั้งหมด</p>
           <p class="kpi-value" id="kpi-total-orders">-</p>
         </div>
         <div class="kpi-card">
@@ -174,7 +174,7 @@
       <!-- Recent Orders -->
       <section class="card">
         <div class="card-header">
-          <h3 class="card-title">📋 คำสั่งซื้อล่าสุด</h3>
+          <h3 class="card-title">📋 สั่งคอนกรีตล่าสุด</h3>
           <a href="/orders" class="btn btn-ghost btn-sm">ดูทั้งหมด →</a>
         </div>
         <div class="table-container">
@@ -322,7 +322,7 @@
           tbody.innerHTML = `
             <tr>
               <td colspan="6" class="text-center text-muted" style="padding: 2rem;">
-                ไม่มีข้อมูลคำสั่งซื้อ
+                ไม่มีข้อมูลสั่งคอนกรีต
               </td>
             </tr>
           `;

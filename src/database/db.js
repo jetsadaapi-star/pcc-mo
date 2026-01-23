@@ -65,7 +65,7 @@ function saveDatabase() {
 }
 
 /**
- * บันทึกคำสั่งซื้อคอนกรีตใหม่
+ * บันทึกสั่งคอนกรีตคอนกรีตใหม่
  * @param {Object} order 
  * @returns {Object} inserted order with id
  */
@@ -107,7 +107,7 @@ function insertOrder(order) {
 }
 
 /**
- * ดึงคำสั่งซื้อที่ยังไม่ได้ sync ไป Google Sheets
+ * ดึงสั่งคอนกรีตที่ยังไม่ได้ sync ไป Google Sheets
  * @returns {Array} orders
  */
 function getUnsyncedOrders() {
@@ -140,7 +140,7 @@ function markAsSynced(ids) {
 }
 
 /**
- * ดึงคำสั่งซื้อตามวันที่
+ * ดึงสั่งคอนกรีตตามวันที่
  * @param {string} date - วันที่ในรูปแบบ YYYY-MM-DD
  * @returns {Array}
  */
@@ -157,7 +157,7 @@ function getOrdersByDate(date) {
 }
 
 /**
- * ดึงคำสั่งซื้อตามโรงงาน
+ * ดึงสั่งคอนกรีตตามโรงงาน
  * @param {number} factoryId 
  * @returns {Array}
  */
@@ -249,7 +249,7 @@ function getSummaryByMonth(month, groupBy = 'factory') {
 }
 
 /**
- * ดึงคำสั่งซื้อทั้งหมด (พร้อม pagination)
+ * ดึงสั่งคอนกรีตทั้งหมด (พร้อม pagination)
  * @param {number} limit 
  * @param {number} offset 
  * @returns {Array}
@@ -267,7 +267,7 @@ function getAllOrders(limit = 100, offset = 0) {
 }
 
 /**
- * ดึงคำสั่งซื้อพร้อมตัวกรองละเอียด
+ * ดึงสั่งคอนกรีตพร้อมตัวกรองละเอียด
  * @param {Object} filters
  * @param {number} limit
  * @param {number} offset
@@ -288,7 +288,7 @@ function getOrdersByFilters(filters = {}, limit = 100, offset = 0) {
 }
 
 /**
- * นับจำนวนคำสั่งซื้อจากตัวกรองละเอียด
+ * นับจำนวนสั่งคอนกรีตจากตัวกรองละเอียด
  * @param {Object} filters
  * @returns {number}
  */
