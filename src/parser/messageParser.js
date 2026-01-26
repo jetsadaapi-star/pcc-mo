@@ -21,18 +21,18 @@ function parseDate(dateStr) {
         const month = parseInt(match[2], 10);
         let year = parseInt(match[3], 10);
 
-    // แปลง พ.ศ. เป็น ค.ศ. (ถ้าปี > 2500 หรือ 2 หลัก >= 43)
-    if (year >= 2500) {
-        year -= 543;
-    } else if (year < 100) {
-        if (year >= 43) {
-            // 2 หลัก และเป็น พ.ศ. (เช่น 69 = 2569 -> 2026)
-            year = year + 1957; // 2500 - 543
-        } else {
-            // 2 หลัก แต่เป็น ค.ศ. (เช่น 26 = 2026)
-            year = 2000 + year;
+        // แปลง พ.ศ. เป็น ค.ศ. (ถ้าปี > 2500 หรือ 2 หลัก >= 43)
+        if (year >= 2500) {
+            year -= 543;
+        } else if (year < 100) {
+            if (year >= 43) {
+                // 2 หลัก และเป็น พ.ศ. (เช่น 69 = 2569 -> 2026)
+                year = year + 1957; // 2500 - 543
+            } else {
+                // 2 หลัก แต่เป็น ค.ศ. (เช่น 26 = 2026)
+                year = 2000 + year;
+            }
         }
-    }
 
         // Format: YYYY-MM-DD
         const paddedMonth = month.toString().padStart(2, '0');
@@ -138,6 +138,33 @@ function parseSupervisor(text) {
 }
 
 /**
+ * ดึงจำนวนสินค้าและหน่วยจากข้อความ
+ * รองรับ: 75แผ่น, 8 ตัว, =20แผ่น, =28ต้น
+ * @param {string} text 
+ * @returns {Object} { quantity: number|null, unit: string|null }
+ */
+function parseProductQuantity(text) {
+    const patterns = [
+        // รูปแบบ =75แผ่น หรือ = 75 แผ่น
+        /=\s*(\d+(?:\.\d+)?)\s*(แผ่น|ตัว|ต้น|ชุด|คู่|ชิ้น|ท่อน|วง|ลูก|กล่อง)/i,
+        // รูปแบบ 75แผ่น หรือ 75 แผ่น
+        /(\d+(?:\.\d+)?)\s*(แผ่น|ตัว|ต้น|ชุด|คู่|ชิ้น|ท่อน|วง|ลูก|กล่อง)/i
+    ];
+
+    for (const pattern of patterns) {
+        const match = text.match(pattern);
+        if (match) {
+            return {
+                quantity: parseFloat(match[1]),
+                unit: match[2]
+            };
+        }
+    }
+
+    return { quantity: null, unit: null };
+}
+
+/**
  * เช็คว่าข้อความนี้เป็นข้อมูลการสั่งคอนกรีตหรือไม่
  * @param {string} text 
  * @returns {boolean}
@@ -200,11 +227,15 @@ function parseMessage(text) {
         return null;
     }
 
+    const productQty = parseProductQuantity(text);
+
     const result = {
         orderDate: parseDate(text),
         factoryId: parseFactory(text),
         productCode: parseProductCode(text),
         productDetail: parseProductDetail(text),
+        productQuantity: productQty.quantity,
+        productUnit: productQty.unit,
         cementQuantity: parseCementQuantity(text),
         loadedQuantity: null, // จะเติมทีหลังจากระบบโม่
         difference: null,
@@ -222,6 +253,7 @@ module.exports = {
     parseFactory,
     parseProductCode,
     parseCementQuantity,
+    parseProductQuantity,
     parseSupervisor,
     parseProductDetail,
     isConcreteOrderMessage

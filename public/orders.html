@@ -197,6 +197,8 @@
                                 <th>วันที่</th>
                                 <th>โรงงาน</th>
                                 <th>รหัส</th>
+                                <th>จำนวน</th>
+                                <th>หน่วย</th>
                                 <th>รายละเอียด</th>
                                 <th>ปูน (คิว)</th>
                                 <th>โหลด</th>
@@ -207,7 +209,7 @@
                         </thead>
                         <tbody id="orders-tbody">
                             <tr>
-                                <td colspan="10" class="text-center text-muted" style="padding: 2rem;">
+                                <td colspan="12" class="text-center text-muted" style="padding: 2rem;">
                                     <div class="loading-spinner" style="margin: 0 auto 1rem;"></div>
                                     กำลังโหลด...
                                 </td>
@@ -305,7 +307,7 @@
                 const tbody = document.getElementById('orders-tbody');
                 tbody.innerHTML = `
           <tr>
-            <td colspan="10" class="text-center text-muted" style="padding: 2rem;">
+            <td colspan="12" class="text-center text-muted" style="padding: 2rem;">
               <div class="loading-spinner" style="margin: 0 auto 1rem;"></div>
               กำลังโหลด...
             </td>
@@ -324,7 +326,7 @@
                     console.error('Load orders error:', error);
                     tbody.innerHTML = `
             <tr>
-              <td colspan="10" class="text-center text-muted" style="padding: 2rem;">
+              <td colspan="12" class="text-center text-muted" style="padding: 2rem;">
                 ❌ เกิดข้อผิดพลาดในการโหลดข้อมูล
               </td>
             </tr>
@@ -338,7 +340,7 @@
                 if (!ordersList || ordersList.length === 0) {
                     tbody.innerHTML = `
             <tr>
-              <td colspan="10" class="text-center text-muted" style="padding: 2rem;">
+              <td colspan="12" class="text-center text-muted" style="padding: 2rem;">
                 ไม่พบข้อมูลตามเงื่อนไข
               </td>
             </tr>
@@ -357,6 +359,8 @@
               <td>${PCCMO.formatDate(order.order_date)}</td>
               <td>🏭 โรง ${order.factory_id || '-'}</td>
               <td>${PCCMO.escapeHtml(order.product_code || '-')}</td>
+              <td class="font-semibold">${PCCMO.formatNumber(order.product_quantity, 0)}</td>
+              <td>${PCCMO.escapeHtml(order.product_unit || '-')}</td>
               <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis;" title="${PCCMO.escapeHtml(order.product_detail || '')}">
                 ${PCCMO.escapeHtml(order.product_detail || '-')}
               </td>

@@ -26,6 +26,8 @@ Counterfort 8 ตัว
             orderDate: '2026-01-21',
             factoryId: 4,
             productCode: 'A42',
+            productQuantity: 8,
+            productUnit: 'ตัว',
             cementQuantity: 0.7
         }
     },
@@ -41,6 +43,8 @@ PCC เทแผ่นรั้ว New.ทับหลัง
             orderDate: '2026-01-21',
             factoryId: 2,
             productCode: 'A35',
+            productQuantity: 20,
+            productUnit: 'แผ่น',
             cementQuantity: 0.35
         }
     },
@@ -54,7 +58,26 @@ PCC เทแผ่นรั้ว New.ทับหลัง
             orderDate: '2026-01-20',
             factoryId: 4,
             productCode: 'A35',
+            productQuantity: 28,
+            productUnit: 'ต้น',
             cementQuantity: 1.1
+        }
+    },
+    {
+        name: 'ตัวอย่าง 4: จาก USER (75แผ่น)',
+        input: `26/01/69
+โรง 2 สั่งคอนกรีต A35   
+แผ่นรั้ว slump 23-24 cm.
+PCC เทแผ่นรั้ว New. โต๊ะ=8-9-10-2-4=75แผ่น
+(5โต๊ะ)
+=1.5คิว`,
+        expected: {
+            orderDate: '2026-01-26',
+            factoryId: 2,
+            productCode: 'A35',
+            productQuantity: 75,
+            productUnit: 'แผ่น',
+            cementQuantity: 1.5
         }
     }
 ];

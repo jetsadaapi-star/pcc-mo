@@ -73,6 +73,8 @@ async function syncToSheets() {
             order.factory_id || '',
             order.product_code || '',
             order.product_detail || '',
+            order.product_quantity || '',
+            order.product_unit || '',
             order.cement_quantity || '',
             order.loaded_quantity || '',
             order.difference || '',
@@ -84,7 +86,7 @@ async function syncToSheets() {
         // Append to sheet
         await sheetsClient.spreadsheets.values.append({
             spreadsheetId,
-            range: 'Sheet1!A:J', // ปรับ range ตามชื่อ sheet
+            range: 'Sheet1!A:L', // ปรับ range ตามชื่อ sheet
             valueInputOption: 'USER_ENTERED',
             insertDataOption: 'INSERT_ROWS',
             resource: { values: rows }
@@ -121,6 +123,8 @@ async function createHeaderRow() {
         'โรงงาน',
         'รหัสสินค้า',
         'รายการสินค้าที่ผลิต',
+        'จำนวนสินค้า',
+        'หน่วย',
         'จำนวนปูน (คิว)',
         'จำนวนที่โหลด',
         'ผลต่าง',
@@ -132,7 +136,7 @@ async function createHeaderRow() {
     try {
         await sheetsClient.spreadsheets.values.update({
             spreadsheetId,
-            range: 'Sheet1!A1:J1',
+            range: 'Sheet1!A1:L1',
             valueInputOption: 'USER_ENTERED',
             resource: { values: [headers] }
         });

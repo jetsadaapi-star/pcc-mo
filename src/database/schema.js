@@ -11,6 +11,8 @@ CREATE TABLE IF NOT EXISTS concrete_orders (
   factory_id INTEGER,
   product_code TEXT,
   product_detail TEXT,
+  product_quantity REAL,
+  product_unit TEXT,
   cement_quantity REAL,
   loaded_quantity REAL,
   difference REAL,

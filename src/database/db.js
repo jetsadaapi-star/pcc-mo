@@ -75,10 +75,11 @@ function insertOrder(order) {
   const stmt = db.prepare(`
     INSERT INTO concrete_orders (
       order_date, factory_id, product_code, product_detail,
+      product_quantity, product_unit,
       cement_quantity, loaded_quantity, difference,
       supervisor, notes, raw_message,
       line_user_id, line_group_id
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   stmt.run([
@@ -86,6 +87,8 @@ function insertOrder(order) {
     order.factoryId || null,
     order.productCode || null,
     order.productDetail || null,
+    order.productQuantity || null,
+    order.productUnit || null,
     order.cementQuantity || null,
     order.loadedQuantity || null,
     order.difference || null,
