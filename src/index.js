@@ -24,7 +24,8 @@ const {
     getSummaryByDate,
     getSummaryByMonth,
     getFilterOptions,
-    getAnalytics
+    getAnalytics,
+    saveDatabase
 } = require('./database/db');
 const { parseProductQuantity } = require('./parser/messageParser');
 const { SCHEMA } = require('./database/schema'); // For migration context if needed
@@ -233,39 +234,52 @@ app.post('/api/admin/migrate', async (req, res) => {
     try {
         console.log('🚀 Web Triggered Migration Starting...');
         const db = await initDatabase();
+        if (!db) throw new Error('Failed to initialize database');
 
         const results = db.exec('SELECT id, raw_message FROM concrete_orders WHERE product_quantity IS NULL');
+        console.log('🔍 Migration query results:', JSON.stringify(results));
 
-        if (!results || results.length === 0 || results[0].values.length === 0) {
+        if (!results || results.length === 0 || !results[0].values || results[0].values.length === 0) {
             return res.json({ success: true, updated: 0, message: 'No records need migration' });
         }
 
         const rows = results[0].values;
         let updatedCount = 0;
+        let errors = [];
 
-        for (const [id, rawMessage] of rows) {
-            const productQty = parseProductQuantity(rawMessage);
-
-            if (productQty.quantity !== null) {
-                const stmt = db.prepare('UPDATE concrete_orders SET product_quantity = ?, product_unit = ? WHERE id = ?');
-                stmt.run([productQty.quantity, productQty.unit, id]);
-                stmt.free();
-                updatedCount++;
+        for (const row of rows) {
+            const [id, rawMessage] = row;
+            try {
+                const productQty = parseProductQuantity(rawMessage);
+                if (productQty.quantity !== null) {
+                    const stmt = db.prepare('UPDATE concrete_orders SET product_quantity = ?, product_unit = ? WHERE id = ?');
+                    stmt.run([productQty.quantity, productQty.unit, id]);
+                    stmt.free();
+                    updatedCount++;
+                }
+            } catch (itemErr) {
+                console.error(`❌ Error migrating row ID ${id}:`, itemErr);
+                errors.push(`ID ${id}: ${itemErr.message}`);
             }
         }
 
-        const { saveDatabase } = require('./database/db');
         saveDatabase();
 
         res.json({
             success: true,
             updated: updatedCount,
             total: rows.length,
-            message: `Migrated ${updatedCount} out of ${rows.length} records`
+            errorCount: errors.length,
+            errors: errors.length > 0 ? errors.slice(0, 5) : undefined,
+            message: `Migrated ${updatedCount} out of ${rows.length} records. Found ${errors.length} errors.`
         });
     } catch (err) {
         console.error('Migration API error:', err);
-        res.status(500).json({ error: err.message });
+        res.status(500).json({
+            error: 'Internal Migration Error',
+            details: err.message,
+            stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+        });
     }
 });
 
