@@ -26,6 +26,8 @@ const {
     getFilterOptions,
     getAnalytics
 } = require('./database/db');
+const { parseProductQuantity } = require('./parser/messageParser');
+const { SCHEMA } = require('./database/schema'); // For migration context if needed
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -222,6 +224,47 @@ app.post('/api/sheets/init', async (req, res) => {
         await createHeaderRow();
         res.json({ success: true, message: 'Header row created' });
     } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// API: แยกข้อมูลเก่า (Migration)
+app.post('/api/admin/migrate', async (req, res) => {
+    try {
+        console.log('🚀 Web Triggered Migration Starting...');
+        const db = await initDatabase();
+
+        const results = db.exec('SELECT id, raw_message FROM concrete_orders WHERE product_quantity IS NULL');
+
+        if (!results || results.length === 0 || results[0].values.length === 0) {
+            return res.json({ success: true, updated: 0, message: 'No records need migration' });
+        }
+
+        const rows = results[0].values;
+        let updatedCount = 0;
+
+        for (const [id, rawMessage] of rows) {
+            const productQty = parseProductQuantity(rawMessage);
+
+            if (productQty.quantity !== null) {
+                const stmt = db.prepare('UPDATE concrete_orders SET product_quantity = ?, product_unit = ? WHERE id = ?');
+                stmt.run([productQty.quantity, productQty.unit, id]);
+                stmt.free();
+                updatedCount++;
+            }
+        }
+
+        const { saveDatabase } = require('./database/db');
+        saveDatabase();
+
+        res.json({
+            success: true,
+            updated: updatedCount,
+            total: rows.length,
+            message: `Migrated ${updatedCount} out of ${rows.length} records`
+        });
+    } catch (err) {
+        console.error('Migration API error:', err);
         res.status(500).json({ error: err.message });
     }
 });

@@ -48,6 +48,24 @@ async function initDatabase() {
 
   // Initialize schema
   db.run(SCHEMA);
+
+  // Ensure new columns exist (for existing databases)
+  try {
+    const tableInfo = db.exec("PRAGMA table_info(concrete_orders)");
+    const columns = tableInfo[0].values.map(v => v[1]);
+
+    if (!columns.includes('product_quantity')) {
+      console.log('🏗️ Adding column: product_quantity');
+      db.run("ALTER TABLE concrete_orders ADD COLUMN product_quantity REAL");
+    }
+    if (!columns.includes('product_unit')) {
+      console.log('🏗️ Adding column: product_unit');
+      db.run("ALTER TABLE concrete_orders ADD COLUMN product_unit TEXT");
+    }
+  } catch (err) {
+    console.error('⚠️ Error checking/updating schema:', err);
+  }
+
   saveDatabase();
 
   isInitialized = true;

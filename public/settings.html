@@ -160,6 +160,18 @@
                         Initialize Headers
                     </button>
                 </div>
+
+                <!-- Data Migration -->
+                <div class="card action-card">
+                    <div class="action-icon">🧹</div>
+                    <h3 class="action-title">แยกข้อมูลเก่า</h3>
+                    <p class="action-desc">
+                        วิเคราะห์ข้อความเก่าเพื่อแยก "จำนวน" และ "หน่วย" ออกมา
+                    </p>
+                    <button class="btn btn-warning btn-lg" onclick="settings.migrateData()" id="migrate-btn">
+                        Start Migration
+                    </button>
+                </div>
             </section>
 
             <!-- System Info -->
@@ -317,6 +329,32 @@
                     }
                 } catch (error) {
                     PCCMO.showToast('❌ เกิดข้อผิดพลาด', 'error');
+                }
+            },
+
+            async migrateData() {
+                const btn = document.getElementById('migrate-btn');
+                if (!confirm('ยืนยันการรัน Migration เพื่อแยกข้อมูลเก่าในฐานข้อมูล?')) return;
+
+                if (btn) btn.disabled = true;
+
+                try {
+                    PCCMO.showToast('🧹 กำลังแยกข้อมูลเก่า...', 'info');
+                    const result = await PCCMO.fetchAPI('/api/admin/migrate', { method: 'POST' });
+
+                    if (result.error) {
+                        PCCMO.showToast(`❌ ${result.error}`, 'error');
+                    } else if (result.updated > 0) {
+                        PCCMO.showToast(`✅ แยกข้อมูลสำเร็จ ${result.updated} รายการ`, 'success');
+                        await this.loadHealth();
+                        await this.loadSyncStatus();
+                    } else {
+                        PCCMO.showToast('✓ ไม่มีรายการที่ต้องจัดการ', 'success');
+                    }
+                } catch (error) {
+                    PCCMO.showToast('❌ เกิดข้อผิดพลาดในการ Migration', 'error');
+                } finally {
+                    if (btn) btn.disabled = false;
                 }
             }
         };
