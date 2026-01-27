@@ -35,55 +35,62 @@ async function handleEvent(event) {
 
     console.log(`📩 Received message from ${groupId ? 'group' : 'user'}: ${text.substring(0, 50)}...`);
 
-    // Parse ข้อความ
-    const parsed = parseMessage(text);
+    // Parse ข้อความ (จะได้เป็น Array ของ items)
+    const parsedItems = parseMessage(text);
 
-    if (!parsed) {
+    if (!parsedItems || parsedItems.length === 0) {
         console.log('   ⏭️ Not a concrete order message, skipping');
         return null;
     }
 
-    console.log('   ✅ Parsed as concrete order:', {
-        date: parsed.orderDate,
-        factory: parsed.factoryId,
-        product: parsed.productCode,
-        quantity: parsed.cementQuantity
-    });
+    console.log(`   ✅ Parsed into ${parsedItems.length} item(s)`);
 
-    // เพิ่ม LINE metadata
-    parsed.lineUserId = userId;
-    parsed.lineGroupId = groupId;
+    const savedOrders = [];
 
-    // บันทึกลง database
-    try {
-        const savedOrder = insertOrder(parsed);
-        console.log(`   💾 Saved to database with ID: ${savedOrder.id}`);
+    // วนลูปบันทึกแต่ละรายการ
+    for (const item of parsedItems) {
+        // เพิ่ม LINE metadata
+        item.lineUserId = userId;
+        item.lineGroupId = groupId;
+
+        try {
+            const savedOrder = insertOrder(item);
+            console.log(`   💾 Saved Item [${item.productCode}] with ID: ${savedOrder.id}`);
+            savedOrders.push(savedOrder);
+        } catch (err) {
+            console.error(`   ❌ Error saving item [${item.productCode}]:`, err);
+        }
+    }
+
+    // ถ้ามีการบันทึกสำเร็จอย่างน้อย 1 รายการ
+    if (savedOrders.length > 0) {
+        const firstOrder = savedOrders[0];
 
         // ส่งข้อความยืนยัน (ถ้าเปิดใช้งาน)
         if (process.env.ENABLE_REPLY_MESSAGE === 'true') {
-            const confirmMsg = formatConfirmMessage(savedOrder);
+            const confirmMsg = formatConfirmMessage(firstOrder, savedOrders.length);
             await replyText(event.replyToken, confirmMsg);
         }
 
-        // Sync ไป Google Sheets (async, ไม่ต้องรอ)
+        // Sync ไป Google Sheets
         syncToSheets().catch(err => {
             console.error('Error syncing to sheets:', err);
         });
 
-        return savedOrder;
-    } catch (err) {
-        console.error('   ❌ Error saving to database:', err);
-        return null;
+        return savedOrders;
     }
+
+    return null;
 }
 
 /**
  * สร้างข้อความยืนยัน
  * @param {Object} order 
+ * @param {number} totalItems 
  * @returns {string}
  */
-function formatConfirmMessage(order) {
-    const lines = ['✅ บันทึกข้อมูลสำเร็จ'];
+function formatConfirmMessage(order, totalItems = 1) {
+    const lines = [`✅ บันทึกสำเร็จ (${totalItems} รายการ)`];
 
     if (order.orderDate) {
         lines.push(`📅 วันที่: ${formatThaiDate(order.orderDate)}`);
@@ -91,14 +98,16 @@ function formatConfirmMessage(order) {
     if (order.factoryId) {
         lines.push(`🏭 โรงงาน: ${order.factoryId}`);
     }
+
+    // แสดงสินค้าหลักรายการแรก
     if (order.productCode) {
-        lines.push(`📦 รหัส: ${order.productCode}`);
+        lines.push(`📦 สินค้า: ${order.productCode}`);
     }
     if (order.cementQuantity) {
-        lines.push(`🧱 ปูน: ${order.cementQuantity} คิว`);
+        lines.push(`🧱 ปูนทั้งหมด: ${order.cementQuantity} คิว`);
     }
 
-    lines.push(`🔖 ID: #${order.id}`);
+    lines.push(`🔖 ID ล่าสุด: #${order.id}`);
 
     return lines.join('\n');
 }

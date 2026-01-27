@@ -85,42 +85,84 @@ PCC เทแผ่นรั้ว New. โต๊ะ=8-9-10-2-4=75แผ่น
 // Run tests
 console.log('🧪 Running Message Parser Tests...\n');
 
-let passCount = 0;
-let failCount = 0;
+const results = { passed: 0, failed: 0 };
 
 for (const test of testMessages) {
     console.log(`📝 ${test.name}`);
     console.log(`   Input: "${test.input.substring(0, 50)}..."`);
 
-    const result = parseMessage(test.input);
+    // ดึงค่าจริง
+    const actual = parseMessage(test.input);
 
-    if (!result) {
-        console.log('   ❌ FAILED: parseMessage returned null');
-        failCount++;
+    if (actual === null) {
+        if (test.expected === null) {
+            console.log(`   ✅ match (null)`);
+        } else {
+            console.log(`   ❌ match failed: expected data but got null`);
+            results.failed++;
+        }
         continue;
     }
 
-    let passed = true;
+    // กรณีเป็น Array (ระบบใหม่)
+    const firstItem = actual[0];
 
-    // Check each expected field
-    for (const [key, expected] of Object.entries(test.expected)) {
-        const actual = result[key];
-        if (actual !== expected) {
-            console.log(`   ❌ ${key}: expected "${expected}", got "${actual}"`);
-            passed = false;
+    // ตรวจสอบข้อมูล
+    let passed = true;
+    for (const [key, expectedValue] of Object.entries(test.expected)) {
+        const actualValue = firstItem[key];
+        if (actualValue === expectedValue) {
+            console.log(`   ✅ ${key}: ${actualValue}`);
         } else {
-            console.log(`   ✅ ${key}: ${actual}`);
+            console.log(`   ❌ ${key}: expected ${expectedValue} but got ${actualValue}`);
+            passed = false;
         }
     }
 
     if (passed) {
-        passCount++;
+        results.passed++;
     } else {
-        failCount++;
+        results.failed++;
     }
 
     console.log('');
 }
+
+// เพิ่ม Test Case พิเศษสำหรับ Multi-items
+const multiItemTest = {
+    name: 'ตัวอย่าง 5: Multi-items (จาก USER)',
+    input: `26/01/69
+โรง4 สั่งคอนกรีต
+กล่องฐานราก60×60 A35-FZC-F60 จำนวน 6 ชิ้น A35-FZC-F35 จำนวน 6 ชิ้น 
+จำนวนคอนกรีต=0.25 คิว
+ชุดPccพร้อมเทครับ`,
+    expected: [
+        { productCode: 'A35-FZC-F60', productQuantity: 6, cementQuantity: 0.25 },
+        { productCode: 'A35-FZC-F35', productQuantity: 6, cementQuantity: null }
+    ]
+};
+
+console.log(`\n📝 ${multiItemTest.name}`);
+const multiResult = parseMessage(multiItemTest.input);
+if (multiResult && multiResult.length === 2) {
+    console.log(`   ✅ Parsed 2 items correctly`);
+    let subPassed = true;
+    multiItemTest.expected.forEach((exp, i) => {
+        const item = multiResult[i];
+        if (item.productCode === exp.productCode && item.productQuantity === exp.productQuantity && item.cementQuantity === exp.cementQuantity) {
+            console.log(`      Item ${i + 1} [${item.productCode}]: OK`);
+        } else {
+            console.log(`      Item ${i + 1} [${item.productCode}]: FAILED`, { expected: exp, getting: item });
+            subPassed = false;
+        }
+    });
+    if (subPassed) results.passed++; else results.failed++;
+} else {
+    console.log(`   ❌ Failed: expected 2 items but got ${multiResult?.length || 0}`);
+    results.failed++;
+}
+console.log('');
+
 
 // Test date parsing specifically
 console.log('📅 Date Parsing Tests:');
@@ -135,20 +177,20 @@ for (const { input, expected } of dateCases) {
     const actual = parseDate(input);
     if (actual === expected) {
         console.log(`   ✅ "${input}" → "${actual}"`);
-        passCount++;
+        results.passed++;
     } else {
         console.log(`   ❌ "${input}" → expected "${expected}", got "${actual}"`);
-        failCount++;
+        results.failed++;
     }
 }
 
 console.log('');
 console.log('📊 Test Results:');
-console.log(`   ✅ Passed: ${passCount}`);
-console.log(`   ❌ Failed: ${failCount}`);
+console.log(`   ✅ Passed: ${results.passed}`);
+console.log(`   ❌ Failed: ${results.failed}`);
 console.log('');
 
-if (failCount === 0) {
+if (results.failed === 0) {
     console.log('🎉 All tests passed!');
     process.exit(0);
 } else {

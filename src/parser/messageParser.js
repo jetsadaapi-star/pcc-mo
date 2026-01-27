@@ -68,12 +68,13 @@ function parseFactory(text) {
 
 /**
  * ดึงรหัสสินค้าจากข้อความ
- * รองรับ: A35, A42, A13
+ * รองรับ: A35, A42, A13, A35-FZC-F60 (แบบซับซ้อน)
  * @param {string} text 
  * @returns {string|null}
  */
 function parseProductCode(text) {
-    const pattern = /\b(A\d{2})\b/i;
+    // ปรับให้รองรับรหัสที่ยาวขึ้น เช่น A35-FZC-F60
+    const pattern = /\b(A\d{2}[A-Z\d\-]*)\b/i;
     const match = text.match(pattern);
     return match ? match[1].toUpperCase() : null;
 }
@@ -138,16 +139,53 @@ function parseSupervisor(text) {
 }
 
 /**
- * ดึงจำนวนสินค้าและหน่วยจากข้อความ
- * รองรับ: 75แผ่น, 8 ตัว, =20แผ่น, =28ต้น
+ * ดึงรายการสินค้าทั้งหมดจากข้อความ
+ * สกัดกรณีที่มีรหัสสินค้าหลายตัวและจำนวนหลายที่
+ * @param {string} text 
+ * @returns {Array} Array of { code, quantity, unit, detail }
+ */
+function parseItems(text) {
+    const items = [];
+
+    // Pattern สำหรับหา <รหัสสินค้า> <จำนวน> <หน่วย>
+    // เช่น A35-FZC-F60 จำนวน 6 ชิ้น
+    const itemPattern = /(A\d{2}[A-Z\d\-]*)\s*(?:จำนวน\s*)?(\d+(?:\.\d+)?)\s*(แผ่น|ตัว|ต้น|ชุด|คู่|ชิ้น|ท่อน|วง|ลูก|กล่อง)/gi;
+
+    let match;
+    while ((match = itemPattern.exec(text)) !== null) {
+        items.push({
+            code: match[1].toUpperCase(),
+            quantity: parseFloat(match[2]),
+            unit: match[3],
+            detail: match[0] // เก็บข้อความเต็มที่ match ได้ไว้ก่อน
+        });
+    }
+
+    // ถ้าไม่เจอตาม pattern สินค้า+จำนวน ให้ลองหารหัสสินค้าอย่างเดียว (Legacy mode)
+    if (items.length === 0) {
+        const code = parseProductCode(text);
+        if (code) {
+            const qty = parseProductQuantity(text);
+            items.push({
+                code: code,
+                quantity: qty.quantity,
+                unit: qty.unit,
+                detail: parseProductDetail(text)
+            });
+        }
+    }
+
+    return items;
+}
+
+/**
+ * ดึงจำนวนสินค้าและหน่วยจากข้อความ (สำหรับ 1 รายการ)
  * @param {string} text 
  * @returns {Object} { quantity: number|null, unit: string|null }
  */
 function parseProductQuantity(text) {
     const patterns = [
-        // รูปแบบ =75แผ่น หรือ = 75 แผ่น
         /=\s*(\d+(?:\.\d+)?)\s*(แผ่น|ตัว|ต้น|ชุด|คู่|ชิ้น|ท่อน|วง|ลูก|กล่อง)/i,
-        // รูปแบบ 75แผ่น หรือ 75 แผ่น
         /(\d+(?:\.\d+)?)\s*(แผ่น|ตัว|ต้น|ชุด|คู่|ชิ้น|ท่อน|วง|ลูก|กล่อง)/i
     ];
 
@@ -218,33 +256,39 @@ function parseProductDetail(text) {
 }
 
 /**
- * Parse ข้อความจาก LINE เป็น structured data
+ * Parse ข้อความจาก LINE เป็น structured data (รองรับหลายรายการ)
  * @param {string} text - ข้อความจาก LINE
- * @returns {Object|null} - parsed data หรือ null ถ้าไม่ใช่ order message
+ * @returns {Array|null} - รายการ parsed data หรือ null ถ้าไม่ใช่ order message
  */
 function parseMessage(text) {
     if (!isConcreteOrderMessage(text)) {
         return null;
     }
 
-    const productQty = parseProductQuantity(text);
+    const orderDate = parseDate(text);
+    const factoryId = parseFactory(text);
+    const supervisor = parseSupervisor(text);
+    const totalCement = parseCementQuantity(text);
+    const items = parseItems(text);
 
-    const result = {
-        orderDate: parseDate(text),
-        factoryId: parseFactory(text),
-        productCode: parseProductCode(text),
-        productDetail: parseProductDetail(text),
-        productQuantity: productQty.quantity,
-        productUnit: productQty.unit,
-        cementQuantity: parseCementQuantity(text),
-        loadedQuantity: null, // จะเติมทีหลังจากระบบโม่
+    if (items.length === 0) return null;
+
+    // สร้างรายการข้อมูลสำหรับแต่ละสินค้า
+    return items.map((item, index) => ({
+        orderDate,
+        factoryId,
+        productCode: item.code,
+        productDetail: item.detail,
+        productQuantity: item.quantity,
+        productUnit: item.unit,
+        // ให้ปูนทั้งหมดอยู่ที่รายการแรก เพื่อไม่ให้ยอดรวมซ้ำซ้อน
+        cementQuantity: index === 0 ? totalCement : null,
+        loadedQuantity: null,
         difference: null,
-        supervisor: parseSupervisor(text),
-        notes: null,
+        supervisor,
+        notes: items.length > 1 ? `รายการที่ ${index + 1}/${items.length}` : null,
         rawMessage: text
-    };
-
-    return result;
+    }));
 }
 
 module.exports = {

@@ -560,5 +560,6 @@ module.exports = {
   getOrdersCountByFilters,
   getFilterOptions,
   getAnalytics,
-  getOrderCount
+  getOrderCount,
+  saveDatabase
 };
