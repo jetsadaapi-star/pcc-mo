@@ -147,9 +147,15 @@ function parseSupervisor(text) {
 function parseItems(text) {
     const items = [];
 
-    // Pattern สำหรับหา <รหัสสินค้า> <จำนวน> <หน่วย>
+    // หน่วยที่รองรับ (ต้องไม่ตามด้วยตัวอักษรไทย เพื่อป้องกัน "กล่องฐานราก")
+    const unitList = 'แผ่น|ตัว|ต้น|ชุด|คู่|ชิ้น|ท่อน|วง|ลูก|กล่อง';
+
+    // Pattern สำหรับหา <รหัสสินค้า> จำนวน <ตัวเลข> <หน่วย>
     // เช่น A35-FZC-F60 จำนวน 6 ชิ้น
-    const itemPattern = /(A\d{2}[A-Z\d\-]*)\s*(?:จำนวน\s*)?(\d+(?:\.\d+)?)\s*(แผ่น|ตัว|ต้น|ชุด|คู่|ชิ้น|ท่อน|วง|ลูก|กล่อง)/gi;
+    const itemPattern = new RegExp(
+        `(A\\d{2}[A-Z\\d\\-]*)\\s+จำนวน\\s*(\\d+(?:\\.\\d+)?)\\s*(${unitList})(?![ก-ฮ])`,
+        'gi'
+    );
 
     let match;
     while ((match = itemPattern.exec(text)) !== null) {
@@ -184,9 +190,16 @@ function parseItems(text) {
  * @returns {Object} { quantity: number|null, unit: string|null }
  */
 function parseProductQuantity(text) {
+    // หน่วยที่รองรับ (ต้องไม่ตามด้วยตัวอักษรไทย เพื่อป้องกัน "กล่องฐานราก")
+    const unitPattern = '(แผ่น|ตัว|ต้น|ชุด|คู่|ชิ้น|ท่อน|วง|ลูก|กล่อง)(?![ก-ฮ])';
+
     const patterns = [
-        /=\s*(\d+(?:\.\d+)?)\s*(แผ่น|ตัว|ต้น|ชุด|คู่|ชิ้น|ท่อน|วง|ลูก|กล่อง)/i,
-        /(\d+(?:\.\d+)?)\s*(แผ่น|ตัว|ต้น|ชุด|คู่|ชิ้น|ท่อน|วง|ลูก|กล่อง)/i
+        // Priority 1: "จำนวน X หน่วย" - ชัดเจนที่สุด
+        new RegExp(`จำนวน\\s*(\\d+(?:\\.\\d+)?)\\s*${unitPattern}`, 'i'),
+        // Priority 2: "=75แผ่น" หรือ "= 75 แผ่น"
+        new RegExp(`=\\s*(\\d+(?:\\.\\d+)?)\\s*${unitPattern}`, 'i'),
+        // Priority 3: "รหัส 8 ตัว" (ต้องมี space ระหว่างตัวเลขกับหน่วย และหน่วยไม่ติดอักษรไทยอื่น)
+        new RegExp(`\\s(\\d+(?:\\.\\d+)?)\\s*${unitPattern}`, 'i'),
     ];
 
     for (const pattern of patterns) {
