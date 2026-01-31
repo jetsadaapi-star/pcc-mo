@@ -123,6 +123,17 @@ async function syncToSheets() {
             return { synced: 0 };
         }
 
+        // สร้าง header อัตโนมัติถ้าแถวแรกว่างหรือไม่มี header ถูกต้อง
+        const headerRange = buildRange(sheetName, 'A1');
+        const headerCheck = await sheetsClient.spreadsheets.values.get({
+            spreadsheetId,
+            range: headerRange
+        }).catch(() => null);
+        const a1Value = headerCheck?.data?.values?.[0]?.[0];
+        if (!a1Value || a1Value !== 'วันที่') {
+            await createHeaderRow();
+        }
+
         console.log(`📤 Syncing ${orders.length} orders to Google Sheets (${sheetName})...`);
 
         // แปลงเป็น rows
