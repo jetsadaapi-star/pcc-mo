@@ -10,15 +10,16 @@ const { getUnsyncedOrders, markAsSynced } = require('../database/db');
 let sheetsClient = null;
 let isConfigured = false;
 
-/** ชื่อ sheet tab ที่จะใช้ (จาก env หรือ default) */
-function getSheetName() {
-    return process.env.GOOGLE_SHEET_NAME || 'Sheet1';
+/** ดัชนี sheet ที่จะใช้ (0 = แท็บแรก) */
+function getSheetIndex() {
+    const idx = process.env.GOOGLE_SHEET_INDEX;
+    return idx !== undefined ? parseInt(idx, 10) : 0;
 }
 
 /** สร้าง range string (ใส่ quotes ถ้าชื่อ sheet มีช่องว่าง/อักขระพิเศษ) */
 function buildRange(sheetName, range) {
     const needsQuotes = /[\s'"]/.test(sheetName);
-    const quoted = needsQuotes ? `'${sheetName.replace(/'/g, "''")}'` : sheetName;
+    const quoted = needsQuotes ? `'${String(sheetName).replace(/'/g, "''")}'` : sheetName;
     return `${quoted}!${range}`;
 }
 
@@ -81,13 +82,14 @@ async function initSheetsClient() {
 }
 
 /**
- * ดึงชื่อแท็บแรกของ spreadsheet (ใช้เมื่อ GOOGLE_SHEET_NAME ไม่ได้ตั้ง)
+ * ดึงชื่อแท็บของ spreadsheet จาก API (ใช้ชื่อจริง ไม่ใช้ค่าจาก user)
  */
-async function getFirstSheetName(spreadsheetId) {
+async function getSheetNameFromApi(spreadsheetId, index = 0) {
     const res = await sheetsClient.spreadsheets.get({ spreadsheetId });
     const sheets = res.data.sheets || [];
     if (sheets.length === 0) return 'Sheet1';
-    const title = sheets[0].properties?.title;
+    const sheet = sheets[Math.min(index, sheets.length - 1)];
+    const title = sheet?.properties?.title;
     return title || 'Sheet1';
 }
 
@@ -109,12 +111,10 @@ async function syncToSheets() {
     }
 
     try {
-        // หาชื่อ sheet (จาก env หรือใช้แท็บแรก)
-        const sheetName = getSheetName();
-        const resolvedSheetName = sheetName === 'Sheet1'
-            ? await getFirstSheetName(spreadsheetId)
-            : sheetName;
-        const range = buildRange(resolvedSheetName, 'A:L');
+        // ใช้ชื่อแท็บจริงจาก API เสมอ (ชื่อไฟล์ ≠ ชื่อแท็บ เช่น ไฟล์="รายงานโม่..." แท็บ="ชีต1")
+        const sheetIndex = getSheetIndex();
+        const sheetName = await getSheetNameFromApi(spreadsheetId, sheetIndex);
+        const range = buildRange(sheetName, 'A:L');
 
         // ดึง orders ที่ยังไม่ได้ sync
         const orders = getUnsyncedOrders();
@@ -123,7 +123,7 @@ async function syncToSheets() {
             return { synced: 0 };
         }
 
-        console.log(`📤 Syncing ${orders.length} orders to Google Sheets (${resolvedSheetName})...`);
+        console.log(`📤 Syncing ${orders.length} orders to Google Sheets (${sheetName})...`);
 
         // แปลงเป็น rows
         const rows = orders.map(order => [
@@ -176,10 +176,8 @@ async function createHeaderRow() {
     }
 
     const spreadsheetId = process.env.GOOGLE_SHEETS_ID;
-    const sheetName = getSheetName();
-    const resolvedSheetName = sheetName === 'Sheet1'
-        ? await getFirstSheetName(spreadsheetId)
-        : sheetName;
+    const sheetIndex = getSheetIndex();
+    const sheetName = await getSheetNameFromApi(spreadsheetId, sheetIndex);
     const headers = [
         'วันที่',
         'โรงงาน',
@@ -198,7 +196,7 @@ async function createHeaderRow() {
     try {
         await sheetsClient.spreadsheets.values.update({
             spreadsheetId,
-            range: buildRange(resolvedSheetName, 'A1:L1'),
+            range: buildRange(sheetName, 'A1:L1'),
             valueInputOption: 'USER_ENTERED',
             resource: { values: [headers] }
         });
