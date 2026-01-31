@@ -161,6 +161,18 @@
                     </button>
                 </div>
 
+                <!-- Sort Sheet -->
+                <div class="card action-card">
+                    <div class="action-icon">📅</div>
+                    <h3 class="action-title">จัดเรียงตามวันที่</h3>
+                    <p class="action-desc">
+                        เรียงข้อมูลใน Google Sheet ตามคอลัมน์วันที่ (จะจัดเรียงอัตโนมัติหลัง Sync)
+                    </p>
+                    <button class="btn btn-secondary btn-lg" onclick="settings.sortSheet()">
+                        Sort by Date
+                    </button>
+                </div>
+
                 <!-- Data Migration -->
                 <div class="card action-card">
                     <div class="action-icon">🧹</div>
@@ -326,6 +338,21 @@
                         PCCMO.showToast(`❌ ${result.error}`, 'error');
                     } else {
                         PCCMO.showToast('✅ สร้าง Header Row สำเร็จ', 'success');
+                    }
+                } catch (error) {
+                    PCCMO.showToast('❌ เกิดข้อผิดพลาด', 'error');
+                }
+            },
+
+            async sortSheet() {
+                try {
+                    PCCMO.showToast('📅 กำลังจัดเรียงตามวันที่...', 'info');
+                    const result = await PCCMO.fetchAPI('/api/sheets/sort', { method: 'POST' });
+
+                    if (result.error) {
+                        PCCMO.showToast(`❌ ${result.error}`, 'error');
+                    } else {
+                        PCCMO.showToast('✅ จัดเรียงสำเร็จ', 'success');
                     }
                 } catch (error) {
                     PCCMO.showToast('❌ เกิดข้อผิดพลาด', 'error');

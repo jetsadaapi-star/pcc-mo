@@ -88,6 +88,75 @@ function saveDatabase() {
 }
 
 /**
+ * เช็คว่ามีข้อความซ้ำหรือไม่ (ส่งซ้ำภายในช่วงเวลาที่กำหนด)
+ * @param {string} rawMessage - ข้อความต้นฉบับ
+ * @param {string|null} lineGroupId - LINE group ID
+ * @param {string|null} lineUserId - LINE user ID
+ * @param {number} windowMinutes - ช่วงเวลาเช็คซ้ำ (นาที) default 10
+ * @returns {Object|null} { id } ถ้าพบซ้ำ, null ถ้าไม่ซ้ำ
+ */
+function findDuplicateOrder(rawMessage, lineGroupId, lineUserId, windowMinutes = 10) {
+  if (!db || !rawMessage) return null;
+
+  // ต้องมี group หรือ user อย่างน้อยอย่างหนึ่ง
+  if (!lineGroupId && !lineUserId) return null;
+
+  const modifier = `-${Number(windowMinutes) || 10} minutes`;
+  const results = db.exec(
+    `SELECT id FROM concrete_orders 
+     WHERE raw_message = ? 
+     AND ((line_group_id IS NOT NULL AND line_group_id = ?) OR (line_group_id IS NULL AND line_user_id = ?))
+     AND datetime(created_at) >= datetime('now', ?)
+     ORDER BY created_at DESC LIMIT 1`,
+    [rawMessage, lineGroupId || '', lineUserId || '', modifier]
+  );
+
+  if (results && results[0]?.values?.length > 0) {
+    return { id: results[0].values[0][0] };
+  }
+  return null;
+}
+
+/**
+ * เช็ครายการซ้ำ (ข้อมูล order เดียวกันในวันเดียวกัน กลุ่มเดียวกัน)
+ * @param {Object} order - ข้อมูล order
+ * @returns {Object|null} { id } ถ้าพบซ้ำ, null ถ้าไม่ซ้ำ
+ */
+function findDuplicateOrderItem(order, windowMinutes = 30) {
+  if (!db || !order) return null;
+
+  if (!order.lineGroupId && !order.lineUserId) return null;
+
+  const modifier = `-${Number(windowMinutes) || 30} minutes`;
+  const results = db.exec(
+    `SELECT id FROM concrete_orders 
+     WHERE (COALESCE(order_date, '') = COALESCE(?, ''))
+     AND (COALESCE(CAST(factory_id AS TEXT), '') = COALESCE(?, ''))
+     AND (COALESCE(product_code, '') = COALESCE(?, ''))
+     AND (COALESCE(product_detail, '') = COALESCE(?, ''))
+     AND (COALESCE(cement_quantity, 0) = COALESCE(?, 0))
+     AND ((line_group_id IS NOT NULL AND line_group_id = ?) OR (line_group_id IS NULL AND line_user_id = ?))
+     AND datetime(created_at) >= datetime('now', ?)
+     ORDER BY created_at DESC LIMIT 1`,
+    [
+      order.orderDate || '',
+      String(order.factoryId ?? ''),
+      order.productCode ?? '',
+      order.productDetail ?? '',
+      order.cementQuantity ?? 0,
+      order.lineGroupId || '',
+      order.lineUserId || '',
+      modifier
+    ]
+  );
+
+  if (results && results[0]?.values?.length > 0) {
+    return { id: results[0].values[0][0] };
+  }
+  return null;
+}
+
+/**
  * บันทึกสั่งคอนกรีตคอนกรีตใหม่
  * @param {Object} order 
  * @returns {Object} inserted order with id
@@ -130,6 +199,98 @@ function insertOrder(order) {
   saveDatabase();
 
   return { id, ...order };
+}
+
+/**
+ * ตรวจสอบข้อมูลซ้ำในฐานข้อมูล
+ * @returns {Object} { duplicateMessages: [], duplicateItems: [], summary }
+ */
+function findDuplicatesInDatabase() {
+  if (!db) return { duplicateMessages: [], duplicateItems: [], summary: { total: 0, duplicateMessageGroups: 0, duplicateItemGroups: 0 } };
+
+  // 1. ข้อความซ้ำ (raw_message + line_group_id หรือ line_user_id เหมือนกัน)
+  const msgResults = db.exec(`
+    SELECT raw_message, line_group_id, line_user_id, 
+           GROUP_CONCAT(id) as ids, COUNT(*) as count
+    FROM concrete_orders
+    WHERE raw_message IS NOT NULL AND raw_message != ''
+    GROUP BY raw_message, COALESCE(line_group_id, ''), COALESCE(line_user_id, '')
+    HAVING COUNT(*) > 1
+    ORDER BY count DESC
+  `);
+
+  const duplicateMessages = msgResults && msgResults[0]?.values
+    ? msgResults[0].values.map(row => ({
+        raw_message_preview: (row[0] || '').substring(0, 80) + (row[0]?.length > 80 ? '...' : ''),
+        line_group_id: row[1],
+        line_user_id: row[2],
+        ids: (row[3] || '').split(',').map(Number),
+        count: row[4]
+      }))
+    : [];
+
+  // 2. รายการซ้ำ (order_date + factory_id + product_code + product_detail + cement_quantity เหมือนกัน)
+  const itemResults = db.exec(`
+    SELECT order_date, factory_id, product_code, product_detail, cement_quantity,
+           line_group_id, line_user_id,
+           GROUP_CONCAT(id) as ids, COUNT(*) as count
+    FROM concrete_orders
+    GROUP BY 
+      COALESCE(order_date, ''),
+      COALESCE(CAST(factory_id AS TEXT), ''),
+      COALESCE(product_code, ''),
+      COALESCE(product_detail, ''),
+      COALESCE(cement_quantity, 0),
+      COALESCE(line_group_id, ''),
+      COALESCE(line_user_id, '')
+    HAVING COUNT(*) > 1
+    ORDER BY count DESC
+  `);
+
+  const duplicateItems = itemResults && itemResults[0]?.values
+    ? itemResults[0].values.map(row => ({
+        order_date: row[0],
+        factory_id: row[1],
+        product_code: row[2],
+        product_detail_preview: (row[3] || '').substring(0, 40) + (row[3]?.length > 40 ? '...' : ''),
+        cement_quantity: row[4],
+        ids: (row[7] || '').split(',').map(Number),
+        count: row[8]
+      }))
+    : [];
+
+  const totalOrders = getOrderCount();
+  const duplicateMessageCount = duplicateMessages.reduce((s, g) => s + g.count - 1, 0);
+  const duplicateItemCount = duplicateItems.reduce((s, g) => s + g.count - 1, 0);
+
+  return {
+    duplicateMessages,
+    duplicateItems,
+    summary: {
+      total: totalOrders,
+      duplicateMessageGroups: duplicateMessages.length,
+      duplicateMessageRecords: duplicateMessageCount,
+      duplicateItemGroups: duplicateItems.length,
+      duplicateItemRecords: duplicateItemCount,
+      uniqueAfterDedup: totalOrders - Math.max(duplicateMessageCount, duplicateItemCount)
+    }
+  };
+}
+
+/**
+ * ลบข้อมูลทั้งหมดใน concrete_orders
+ * @returns {number} จำนวนที่ลบ
+ */
+function deleteAllOrders() {
+  if (!db) return 0;
+
+  const result = db.exec('SELECT COUNT(*) as count FROM concrete_orders');
+  const count = result?.[0]?.values?.[0]?.[0] ?? 0;
+
+  db.run('DELETE FROM concrete_orders');
+  saveDatabase();
+
+  return count;
 }
 
 /**
@@ -548,6 +709,10 @@ function getGroupSummary(column, clause, values) {
 module.exports = {
   initDatabase,
   insertOrder,
+  findDuplicateOrder,
+  findDuplicateOrderItem,
+  findDuplicatesInDatabase,
+  deleteAllOrders,
   getUnsyncedOrders,
   markAsSynced,
   getOrdersByDate,

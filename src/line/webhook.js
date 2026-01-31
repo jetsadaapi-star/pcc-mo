@@ -4,9 +4,12 @@
  */
 
 const { parseMessage } = require('../parser/messageParser');
-const { insertOrder } = require('../database/db');
+const { insertOrder, findDuplicateOrder, findDuplicateOrderItem } = require('../database/db');
 const { replyText } = require('./lineClient');
 const { syncToSheets } = require('../sheets/sheetsClient');
+
+const DEDUP_MESSAGE_MINUTES = parseInt(process.env.DEDUP_MESSAGE_MINUTES || '10', 10);
+const DEDUP_ITEM_MINUTES = parseInt(process.env.DEDUP_ITEM_MINUTES || '30', 10);
 
 /**
  * จัดการ webhook events
@@ -45,6 +48,13 @@ async function handleEvent(event) {
 
     console.log(`   ✅ Parsed into ${parsedItems.length} item(s)`);
 
+    // เช็คข้อความซ้ำทั้งหมด (ส่งข้อความเดิมซ้ำภายในช่วงเวลา)
+    const msgDup = findDuplicateOrder(text, groupId, userId, DEDUP_MESSAGE_MINUTES);
+    if (msgDup) {
+        console.log(`   ⏭️ Duplicate message detected (same as ID #${msgDup.id}), skipping`);
+        return null;
+    }
+
     const savedOrders = [];
 
     // วนลูปบันทึกแต่ละรายการ
@@ -52,6 +62,14 @@ async function handleEvent(event) {
         // เพิ่ม LINE metadata
         item.lineUserId = userId;
         item.lineGroupId = groupId;
+        item.rawMessage = text;
+
+        // เช็ครายการซ้ำ (order เดียวกันในกลุ่ม/ช่วงเวลาเดียวกัน)
+        const itemDup = findDuplicateOrderItem(item, DEDUP_ITEM_MINUTES);
+        if (itemDup) {
+            console.log(`   ⏭️ Duplicate item [${item.productCode}] (same as ID #${itemDup.id}), skipping`);
+            continue;
+        }
 
         try {
             const savedOrder = insertOrder(item);

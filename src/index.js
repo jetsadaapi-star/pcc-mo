@@ -14,7 +14,7 @@ const express = require('express');
 const path = require('path');
 const { middleware } = require('./line/lineClient');
 const { handleWebhook } = require('./line/webhook');
-const { initSheetsClient, syncToSheets, testConnection, createHeaderRow } = require('./sheets/sheetsClient');
+const { initSheetsClient, syncToSheets, testConnection, createHeaderRow, clearAllSheetData, sortSheet } = require('./sheets/sheetsClient');
 const {
     initDatabase,
     getOrdersByFilters,
@@ -25,6 +25,8 @@ const {
     getSummaryByMonth,
     getFilterOptions,
     getAnalytics,
+    findDuplicatesInDatabase,
+    deleteAllOrders,
     saveDatabase
 } = require('./database/db');
 const { parseProductQuantity } = require('./parser/messageParser');
@@ -225,6 +227,52 @@ app.post('/api/sheets/init', async (req, res) => {
         await createHeaderRow();
         res.json({ success: true, message: 'Header row created' });
     } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// API: จัดเรียงข้อมูลใน Google Sheet ตามวันที่
+app.post('/api/sheets/sort', async (req, res) => {
+    try {
+        const result = await sortSheet();
+        res.json(result);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// API: ตรวจสอบข้อมูลซ้ำในฐานข้อมูล
+app.get('/api/admin/duplicates', (req, res) => {
+    try {
+        const report = findDuplicatesInDatabase();
+        res.json(report);
+    } catch (err) {
+        console.error('Duplicates check error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// API: ล้างข้อมูลทั้งหมด (DB + Google Sheet) - ต้องส่ง confirm=true
+app.post('/api/admin/clear-all', async (req, res) => {
+    try {
+        const confirm = req.body?.confirm === true || req.query?.confirm === 'true';
+        if (!confirm) {
+            return res.status(400).json({
+                error: 'ต้องส่ง confirm=true เพื่อยืนยันการล้างข้อมูลทั้งหมด'
+            });
+        }
+
+        const dbDeleted = deleteAllOrders();
+        const sheetsResult = await clearAllSheetData();
+
+        res.json({
+            success: true,
+            database: { deleted: dbDeleted },
+            googleSheets: sheetsResult,
+            message: `ล้างข้อมูลสำเร็จ: DB ${dbDeleted} รายการ, Google Sheet ${sheetsResult.success ? 'เคลียร์แล้ว' : sheetsResult.error || 'ไม่สำเร็จ'}`
+        });
+    } catch (err) {
+        console.error('Clear-all error:', err);
         res.status(500).json({ error: err.message });
     }
 });

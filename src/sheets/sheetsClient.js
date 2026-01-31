@@ -161,6 +161,12 @@ async function syncToSheets() {
             resource: { values: rows }
         });
 
+        // จัดเรียงตามวันที่ (คอลัมน์ A)
+        const metaRes = await sheetsClient.spreadsheets.get({ spreadsheetId });
+        const sheet = metaRes.data.sheets[sheetIndex] || metaRes.data.sheets[0];
+        const sheetId = sheet?.properties?.sheetId ?? 0;
+        await sortSheetByDate(spreadsheetId, sheetId);
+
         // Mark as synced
         const ids = orders.map(o => o.id);
         markAsSynced(ids);
@@ -218,6 +224,99 @@ async function createHeaderRow() {
 }
 
 /**
+ * จัดเรียงข้อมูลใน Sheet ตามคอลัมน์วันที่ (A) - ไม่รวม header แถว 1
+ * @param {string} spreadsheetId
+ * @param {number} sheetId - จาก sheet.properties.sheetId
+ */
+async function sortSheetByDate(spreadsheetId, sheetId) {
+    if (!sheetsClient || !spreadsheetId || sheetId === undefined) return;
+
+    try {
+        await sheetsClient.spreadsheets.batchUpdate({
+            spreadsheetId,
+            requestBody: {
+                requests: [{
+                    sortRange: {
+                        range: {
+                            sheetId,
+                            startRowIndex: 1,
+                            endRowIndex: 5000,
+                            startColumnIndex: 0,
+                            endColumnIndex: 12
+                        },
+                        sortSpecs: [
+                            { dimensionIndex: 0, sortOrder: 'ASCENDING' }
+                        ]
+                    }
+                }]
+            }
+        });
+        console.log('✅ Sheet sorted by date');
+    } catch (err) {
+        console.error('❌ Error sorting sheet:', err.message);
+    }
+}
+
+/**
+ * จัดเรียง Sheet ทั้งหมดตามวันที่ (สำหรับเรียกจาก API)
+ */
+async function sortSheet() {
+    if (!sheetsClient) await initSheetsClient();
+    if (!sheetsClient) return { success: false, error: 'Not configured' };
+
+    const spreadsheetId = process.env.GOOGLE_SHEETS_ID;
+    if (!spreadsheetId) return { success: false, error: 'GOOGLE_SHEETS_ID not set' };
+
+    try {
+        const metaRes = await sheetsClient.spreadsheets.get({ spreadsheetId });
+        const sheetIndex = getSheetIndex();
+        const sheet = metaRes.data.sheets[sheetIndex] || metaRes.data.sheets[0];
+        const sheetId = sheet?.properties?.sheetId ?? 0;
+
+        await sortSheetByDate(spreadsheetId, sheetId);
+        return { success: true };
+    } catch (err) {
+        console.error('Error in sortSheet:', err);
+        return { success: false, error: err.message };
+    }
+}
+
+/**
+ * ล้างข้อมูลทั้งหมดใน Google Sheet (เคลียร์ทุกแถวในคอลัมน์ A:L)
+ */
+async function clearAllSheetData() {
+    if (!sheetsClient) {
+        await initSheetsClient();
+    }
+
+    if (!sheetsClient) {
+        return { success: false, error: 'Google Sheets not configured' };
+    }
+
+    const spreadsheetId = process.env.GOOGLE_SHEETS_ID;
+    if (!spreadsheetId) {
+        return { success: false, error: 'GOOGLE_SHEETS_ID not set' };
+    }
+
+    try {
+        const sheetIndex = getSheetIndex();
+        const sheetName = await getSheetNameFromApi(spreadsheetId, sheetIndex);
+        const range = buildRange(sheetName, 'A:L');
+
+        await sheetsClient.spreadsheets.values.clear({
+            spreadsheetId,
+            range
+        });
+
+        console.log('✅ Google Sheet cleared');
+        return { success: true };
+    } catch (err) {
+        console.error('❌ Error clearing sheet:', err.message);
+        return { success: false, error: err.message };
+    }
+}
+
+/**
  * ทดสอบการเชื่อมต่อ
  */
 async function testConnection() {
@@ -250,5 +349,8 @@ module.exports = {
     initSheetsClient,
     syncToSheets,
     createHeaderRow,
+    clearAllSheetData,
+    sortSheetByDate,
+    sortSheet,
     testConnection
 };
