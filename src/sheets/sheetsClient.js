@@ -152,7 +152,7 @@ async function syncToSheets() {
             order.created_at || ''
         ]);
 
-        // Append to sheet
+        // Append to sheet (ใช้ RAW สำหรับคอลัมน์วันที่เพื่อให้ sort ถูกต้อง)
         await sheetsClient.spreadsheets.values.append({
             spreadsheetId,
             range,
@@ -165,7 +165,7 @@ async function syncToSheets() {
         const metaRes = await sheetsClient.spreadsheets.get({ spreadsheetId });
         const sheet = metaRes.data.sheets[sheetIndex] || metaRes.data.sheets[0];
         const sheetId = sheet?.properties?.sheetId ?? 0;
-        await sortSheetByDate(spreadsheetId, sheetId);
+        await sortSheetByDate(spreadsheetId, sheetId, sheetName);
 
         // Mark as synced
         const ids = orders.map(o => o.id);
@@ -225,13 +225,30 @@ async function createHeaderRow() {
 
 /**
  * จัดเรียงข้อมูลใน Sheet ตามคอลัมน์วันที่ (A) - ไม่รวม header แถว 1
+ * ใช้ช่วงข้อมูลจริง และจัดเรียงแถวว่างไปท้าย
  * @param {string} spreadsheetId
  * @param {number} sheetId - จาก sheet.properties.sheetId
+ * @param {string} sheetName - ชื่อ sheet สำหรับอ่าน range
  */
-async function sortSheetByDate(spreadsheetId, sheetId) {
+async function sortSheetByDate(spreadsheetId, sheetId, sheetName) {
     if (!sheetsClient || !spreadsheetId || sheetId === undefined) return;
 
     try {
+        // หาจำนวนแถวที่มีข้อมูลจริง
+        const dataRange = buildRange(sheetName, 'A2:L');
+        const valuesRes = await sheetsClient.spreadsheets.values.get({
+            spreadsheetId,
+            range: dataRange
+        }).catch(() => null);
+
+        const rowCount = valuesRes?.data?.values?.length ?? 0;
+        if (rowCount < 2) {
+            console.log('📋 No data to sort');
+            return;
+        }
+
+        const endRowIndex = 1 + rowCount;
+
         await sheetsClient.spreadsheets.batchUpdate({
             spreadsheetId,
             requestBody: {
@@ -240,18 +257,19 @@ async function sortSheetByDate(spreadsheetId, sheetId) {
                         range: {
                             sheetId,
                             startRowIndex: 1,
-                            endRowIndex: 5000,
+                            endRowIndex: endRowIndex,
                             startColumnIndex: 0,
                             endColumnIndex: 12
                         },
                         sortSpecs: [
-                            { dimensionIndex: 0, sortOrder: 'ASCENDING' }
+                            { dimensionIndex: 0, sortOrder: 'ASCENDING' },
+                            { dimensionIndex: 11, sortOrder: 'ASCENDING' }
                         ]
                     }
                 }]
             }
         });
-        console.log('✅ Sheet sorted by date');
+        console.log(`✅ Sheet sorted by date (${rowCount} rows)`);
     } catch (err) {
         console.error('❌ Error sorting sheet:', err.message);
     }
@@ -272,8 +290,9 @@ async function sortSheet() {
         const sheetIndex = getSheetIndex();
         const sheet = metaRes.data.sheets[sheetIndex] || metaRes.data.sheets[0];
         const sheetId = sheet?.properties?.sheetId ?? 0;
+        const sheetName = sheet?.properties?.title || 'Sheet1';
 
-        await sortSheetByDate(spreadsheetId, sheetId);
+        await sortSheetByDate(spreadsheetId, sheetId, sheetName);
         return { success: true };
     } catch (err) {
         console.error('Error in sortSheet:', err);
