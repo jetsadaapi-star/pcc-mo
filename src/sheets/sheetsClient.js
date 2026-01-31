@@ -4,7 +4,6 @@
  */
 
 const { google } = require('googleapis');
-const path = require('path');
 const fs = require('fs');
 const { getUnsyncedOrders, markAsSynced } = require('../database/db');
 
@@ -13,18 +12,47 @@ let isConfigured = false;
 
 /**
  * Initialize Google Sheets client
+ * รองรับ 3 วิธี: JSON env (Railway), Base64 env, keyFile path (local)
  */
 async function initSheetsClient() {
     try {
-        const keyPath = process.env.GOOGLE_SERVICE_ACCOUNT_KEY_PATH;
+        let credentials = null;
 
-        if (!keyPath || !fs.existsSync(keyPath)) {
-            console.log('⚠️ Google Sheets: Service account key not found, sync disabled');
+        // 1. Railway/Cloud: ใช้ JSON string จาก env
+        const jsonCreds = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
+        if (jsonCreds) {
+            try {
+                credentials = typeof jsonCreds === 'string' ? JSON.parse(jsonCreds) : jsonCreds;
+            } catch (e) {
+                console.error('❌ Invalid GOOGLE_APPLICATION_CREDENTIALS_JSON');
+                return false;
+            }
+        }
+
+        // 2. Railway/Cloud: ใช้ Base64 encoded JSON (เหมาะกับค่าซับซ้อน)
+        if (!credentials && process.env.GOOGLE_APPLICATION_CREDENTIALS_BASE64) {
+            try {
+                const decoded = Buffer.from(process.env.GOOGLE_APPLICATION_CREDENTIALS_BASE64, 'base64').toString('utf8');
+                credentials = JSON.parse(decoded);
+            } catch (e) {
+                console.error('❌ Invalid GOOGLE_APPLICATION_CREDENTIALS_BASE64');
+                return false;
+            }
+        }
+
+        // 3. Local: ใช้ไฟล์ key
+        const keyPath = process.env.GOOGLE_SERVICE_ACCOUNT_KEY_PATH;
+        if (!credentials && keyPath && fs.existsSync(keyPath)) {
+            credentials = JSON.parse(fs.readFileSync(keyPath, 'utf8'));
+        }
+
+        if (!credentials) {
+            console.log('⚠️ Google Sheets: No credentials (keyFile/env), sync disabled');
             return false;
         }
 
         const auth = new google.auth.GoogleAuth({
-            keyFile: keyPath,
+            credentials,
             scopes: ['https://www.googleapis.com/auth/spreadsheets']
         });
 
