@@ -10,6 +10,18 @@ const { getUnsyncedOrders, markAsSynced } = require('../database/db');
 let sheetsClient = null;
 let isConfigured = false;
 
+/** ชื่อ sheet tab ที่จะใช้ (จาก env หรือ default) */
+function getSheetName() {
+    return process.env.GOOGLE_SHEET_NAME || 'Sheet1';
+}
+
+/** สร้าง range string (ใส่ quotes ถ้าชื่อ sheet มีช่องว่าง/อักขระพิเศษ) */
+function buildRange(sheetName, range) {
+    const needsQuotes = /[\s'"]/.test(sheetName);
+    const quoted = needsQuotes ? `'${sheetName.replace(/'/g, "''")}'` : sheetName;
+    return `${quoted}!${range}`;
+}
+
 /**
  * Initialize Google Sheets client
  * รองรับ 3 วิธี: JSON env (Railway), Base64 env, keyFile path (local)
@@ -69,6 +81,17 @@ async function initSheetsClient() {
 }
 
 /**
+ * ดึงชื่อแท็บแรกของ spreadsheet (ใช้เมื่อ GOOGLE_SHEET_NAME ไม่ได้ตั้ง)
+ */
+async function getFirstSheetName(spreadsheetId) {
+    const res = await sheetsClient.spreadsheets.get({ spreadsheetId });
+    const sheets = res.data.sheets || [];
+    if (sheets.length === 0) return 'Sheet1';
+    const title = sheets[0].properties?.title;
+    return title || 'Sheet1';
+}
+
+/**
  * Sync ข้อมูลที่ยังไม่ได้ sync ไปยัง Google Sheets
  */
 async function syncToSheets() {
@@ -86,6 +109,13 @@ async function syncToSheets() {
     }
 
     try {
+        // หาชื่อ sheet (จาก env หรือใช้แท็บแรก)
+        const sheetName = getSheetName();
+        const resolvedSheetName = sheetName === 'Sheet1'
+            ? await getFirstSheetName(spreadsheetId)
+            : sheetName;
+        const range = buildRange(resolvedSheetName, 'A:L');
+
         // ดึง orders ที่ยังไม่ได้ sync
         const orders = getUnsyncedOrders();
 
@@ -93,7 +123,7 @@ async function syncToSheets() {
             return { synced: 0 };
         }
 
-        console.log(`📤 Syncing ${orders.length} orders to Google Sheets...`);
+        console.log(`📤 Syncing ${orders.length} orders to Google Sheets (${resolvedSheetName})...`);
 
         // แปลงเป็น rows
         const rows = orders.map(order => [
@@ -114,7 +144,7 @@ async function syncToSheets() {
         // Append to sheet
         await sheetsClient.spreadsheets.values.append({
             spreadsheetId,
-            range: 'Sheet1!A:L', // ปรับ range ตามชื่อ sheet
+            range,
             valueInputOption: 'USER_ENTERED',
             insertDataOption: 'INSERT_ROWS',
             resource: { values: rows }
@@ -146,6 +176,10 @@ async function createHeaderRow() {
     }
 
     const spreadsheetId = process.env.GOOGLE_SHEETS_ID;
+    const sheetName = getSheetName();
+    const resolvedSheetName = sheetName === 'Sheet1'
+        ? await getFirstSheetName(spreadsheetId)
+        : sheetName;
     const headers = [
         'วันที่',
         'โรงงาน',
@@ -164,7 +198,7 @@ async function createHeaderRow() {
     try {
         await sheetsClient.spreadsheets.values.update({
             spreadsheetId,
-            range: 'Sheet1!A1:L1',
+            range: buildRange(resolvedSheetName, 'A1:L1'),
             valueInputOption: 'USER_ENTERED',
             resource: { values: [headers] }
         });
