@@ -269,7 +269,7 @@
                     PCCMO.setText('sys-status', data.status === 'healthy' ? '✓ ปกติ' : '⚠️ มีปัญหา');
                     PCCMO.setText('sys-db', data.database?.connected ? '✓ เชื่อมต่อแล้ว' : '✗ ขาดการเชื่อมต่อ');
                     PCCMO.setText('sys-orders', PCCMO.formatNumber(data.database?.totalOrders || 0));
-                    PCCMO.setText('sys-sheets', data.googleSheets?.connected ? '✓ พร้อมใช้งาน' : '⚠️ ยังไม่ได้ตั้งค่า');
+                    PCCMO.setText('sys-sheets', data.googleSheets?.success ? '✓ พร้อมใช้งาน' : '⚠️ ยังไม่ได้ตั้งค่า');
                 } catch (error) {
                     console.error('Health check error:', error);
                     PCCMO.setText('sys-status', '✗ ไม่สามารถเชื่อมต่อได้');
