@@ -152,11 +152,11 @@ async function syncToSheets() {
             order.created_at || ''
         ]);
 
-        // Append to sheet (ใช้ RAW สำหรับคอลัมน์วันที่เพื่อให้ sort ถูกต้อง)
+        // Append to sheet (ใช้ RAW เพื่อไม่ให้วันที่กลายเป็น serial number เช่น 46027)
         await sheetsClient.spreadsheets.values.append({
             spreadsheetId,
             range,
-            valueInputOption: 'USER_ENTERED',
+            valueInputOption: 'RAW',
             insertDataOption: 'INSERT_ROWS',
             resource: { values: rows }
         });

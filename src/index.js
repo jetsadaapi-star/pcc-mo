@@ -26,6 +26,8 @@ const {
     getFilterOptions,
     getAnalytics,
     findDuplicatesInDatabase,
+    removeDuplicatesFromDatabase,
+    resetAllSyncStatus,
     deleteAllOrders,
     saveDatabase
 } = require('./database/db');
@@ -248,6 +250,39 @@ app.get('/api/admin/duplicates', (req, res) => {
         res.json(report);
     } catch (err) {
         console.error('Duplicates check error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// API: ลบข้อมูลซ้ำและ Re-sync ไป Google Sheet (ลบซ้ำใน DB, เคลียร์ Sheet, sync ใหม่)
+app.post('/api/admin/fix-duplicates', async (req, res) => {
+    try {
+        const confirm = req.query?.confirm === 'true';
+        if (!confirm) {
+            return res.status(400).json({
+                error: 'ต้องส่ง confirm=true เพื่อยืนยัน (เช่น ?confirm=true)'
+            });
+        }
+
+        const dupResult = removeDuplicatesFromDatabase();
+        const sheetsClear = await clearAllSheetData();
+        const resetCount = resetAllSyncStatus();
+        const syncResult = await syncToSheets();
+
+        res.json({
+            success: true,
+            database: {
+                duplicatesRemoved: dupResult.deleted,
+                remainingOrders: dupResult.kept
+            },
+            googleSheets: {
+                cleared: sheetsClear.success,
+                resynced: syncResult.synced
+            },
+            message: `ลบซ้ำ ${dupResult.deleted} รายการ, Re-sync ${syncResult.synced} รายการไป Google Sheet`
+        });
+    } catch (err) {
+        console.error('Fix-duplicates error:', err);
         res.status(500).json({ error: err.message });
     }
 });

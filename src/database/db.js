@@ -278,6 +278,58 @@ function findDuplicatesInDatabase() {
 }
 
 /**
+ * ลบข้อมูลซ้ำในฐานข้อมูล - เก็บเฉพาะ ID ที่ต่ำที่สุด (รายการแรก) ของแต่ละกลุ่ม
+ * @returns {Object} { deleted: number, kept: number }
+ */
+function removeDuplicatesFromDatabase() {
+  if (!db) return { deleted: 0, kept: 0 };
+
+  const report = findDuplicatesInDatabase();
+  const idsToDelete = new Set();
+
+  // รวม ID ที่ซ้ำจากทั้ง duplicateMessages และ duplicateItems (เก็บแค่ ID ที่ต่ำที่สุด)
+  for (const group of report.duplicateMessages) {
+    const sortedIds = [...group.ids].sort((a, b) => a - b);
+    for (let i = 1; i < sortedIds.length; i++) {
+      idsToDelete.add(sortedIds[i]);
+    }
+  }
+  for (const group of report.duplicateItems) {
+    const sortedIds = [...group.ids].sort((a, b) => a - b);
+    for (let i = 1; i < sortedIds.length; i++) {
+      idsToDelete.add(sortedIds[i]);
+    }
+  }
+
+  const toDelete = [...idsToDelete];
+  if (toDelete.length === 0) {
+    return { deleted: 0, kept: getOrderCount() };
+  }
+
+  const placeholders = toDelete.map(() => '?').join(',');
+  db.run(`DELETE FROM concrete_orders WHERE id IN (${placeholders})`, toDelete);
+  saveDatabase();
+
+  return {
+    deleted: toDelete.length,
+    kept: getOrderCount()
+  };
+}
+
+/**
+ * รีเซ็ตสถานะ sync ทั้งหมด (ตั้ง synced_to_sheets = 0)
+ * ใช้เมื่อต้องการ re-sync ข้อมูลทั้งหมดไป Google Sheet
+ */
+function resetAllSyncStatus() {
+  if (!db) return 0;
+  const result = db.exec('SELECT COUNT(*) as c FROM concrete_orders');
+  const count = result?.[0]?.values?.[0]?.[0] ?? 0;
+  db.run('UPDATE concrete_orders SET synced_to_sheets = 0');
+  saveDatabase();
+  return count;
+}
+
+/**
  * ลบข้อมูลทั้งหมดใน concrete_orders
  * @returns {number} จำนวนที่ลบ
  */
@@ -712,6 +764,8 @@ module.exports = {
   findDuplicateOrder,
   findDuplicateOrderItem,
   findDuplicatesInDatabase,
+  removeDuplicatesFromDatabase,
+  resetAllSyncStatus,
   deleteAllOrders,
   getUnsyncedOrders,
   markAsSynced,

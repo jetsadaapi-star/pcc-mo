@@ -173,6 +173,18 @@
                     </button>
                 </div>
 
+                <!-- Fix Duplicates -->
+                <div class="card action-card">
+                    <div class="action-icon">🔧</div>
+                    <h3 class="action-title">ลบข้อมูลซ้ำ</h3>
+                    <p class="action-desc">
+                        ลบรายการซ้ำใน DB และ Google Sheet แล้ว Re-sync ใหม่
+                    </p>
+                    <button class="btn btn-warning btn-lg" onclick="settings.fixDuplicates()" id="fix-dup-btn">
+                        Fix Duplicates
+                    </button>
+                </div>
+
                 <!-- Data Migration -->
                 <div class="card action-card">
                     <div class="action-icon">🧹</div>
@@ -341,6 +353,30 @@
                     }
                 } catch (error) {
                     PCCMO.showToast('❌ เกิดข้อผิดพลาด', 'error');
+                }
+            },
+
+            async fixDuplicates() {
+                if (!confirm('ยืนยันการลบข้อมูลซ้ำและ Re-sync ไป Google Sheet?\n\nจะลบรายการซ้ำใน DB, เคลียร์ Sheet และ sync ใหม่')) return;
+
+                const btn = document.getElementById('fix-dup-btn');
+                if (btn) btn.disabled = true;
+
+                try {
+                    PCCMO.showToast('🔧 กำลังลบข้อมูลซ้ำและ Re-sync...', 'info');
+                    const result = await PCCMO.fetchAPI('/api/admin/fix-duplicates?confirm=true', { method: 'POST' });
+
+                    if (result.error) {
+                        PCCMO.showToast(`❌ ${result.error}`, 'error');
+                    } else {
+                        PCCMO.showToast(`✅ ${result.message}`, 'success');
+                        await this.loadHealth();
+                        await this.loadSyncStatus();
+                    }
+                } catch (error) {
+                    PCCMO.showToast('❌ เกิดข้อผิดพลาด', 'error');
+                } finally {
+                    if (btn) btn.disabled = false;
                 }
             },
 
